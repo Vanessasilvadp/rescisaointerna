@@ -160,6 +160,37 @@ table { border-collapse: collapse; width: 100%; }
 .memoria-item summary { display: flex; justify-content: space-between; gap: 12px; padding: 8px 12px; cursor: pointer; font-weight: 600; }
 .memoria-item ol { margin: 0; padding: 0 16px 10px 36px; font-size: .88rem; color: var(--suave); }
 
+
+/* Histórico */
+.historico { background: var(--cartao); border: 1px solid var(--borda); border-radius: var(--raio); padding: 16px 18px; margin-bottom: 16px; }
+.hist-topo { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px; }
+.hist-topo h2 { margin: 0; font-size: 1.15rem; color: var(--primaria); }
+.hist-contagem { font-size: .85rem; color: var(--suave); }
+.hist-acoes { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.hist-acoes input[type="search"] { width: 260px; max-width: 100%; padding: 8px 10px; border: 1px solid var(--borda); border-radius: 6px; font: inherit; background: var(--campo-fundo, #ffffff); color: var(--texto); }
+.hist-acoes .btn-secundario { margin-top: 0; }
+.btn-arquivo { display: inline-block; cursor: pointer; font-size: inherit; }
+.oculto { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.hist-vazio { color: var(--suave); margin: 12px 0 0; }
+.hist-nota { margin: 10px 0 0; font-size: .8rem; }
+.hist-msg { margin: 10px 0 0; padding: 8px 12px; border-radius: 6px; font-size: .88rem; }
+.hist-msg.ok { background: var(--ok-fundo); color: var(--ok); }
+.hist-msg.erro { background: var(--erro-fundo); color: var(--erro); }
+.tabela-hist { margin-top: 12px; font-size: .9rem; font-variant-numeric: tabular-nums; }
+.tabela-hist th, .tabela-hist td { padding: 8px 10px; border-bottom: 1px solid var(--borda); text-align: left; vertical-align: top; }
+.tabela-hist th { font-size: .75rem; text-transform: uppercase; letter-spacing: .04em; color: var(--suave); }
+.tabela-hist small { display: block; color: var(--suave); font-size: .8rem; }
+.tabela-hist tr.em-edicao td { background: var(--alerta-fundo); }
+.nowrap { white-space: nowrap; }
+.hist-botoes { white-space: nowrap; text-align: right !important; }
+.btn-mini { font-size: .82rem; padding: 5px 10px; border-radius: 5px; border: 1px solid var(--primaria); background: transparent; color: var(--primaria); margin-left: 4px; }
+.btn-mini.perigo { border-color: var(--borda); color: var(--erro); }
+.btn-mini.perigo.confirmar { background: var(--erro); border-color: var(--erro); color: var(--sobre-primaria, #ffffff); }
+.btn-arq { margin-top: 0; }
+.btn-secundario:disabled { opacity: .5; cursor: not-allowed; }
+.editando { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; background: var(--alerta-fundo); border: 1px solid var(--alerta-borda); border-radius: var(--raio); padding: 10px 14px; margin-bottom: 16px; }
+.btn-link { background: none; border: 0; color: var(--primaria); text-decoration: underline; padding: 0; }
+
 /* Recibo: oculto na tela, único conteúdo na impressão */
 .recibo { display: none; }
 
@@ -201,6 +232,26 @@ table { border-collapse: collapse; width: 100%; }
       adicionais e descontos informados. <strong>Não inclui</strong> aviso prévio, multa de 40% do FGTS, INSS, IRRF,
       férias em dobro nem atualização monetária.
     </aside>
+
+    <section id="historico" class="historico" aria-labelledby="hist-titulo">
+      <div class="hist-topo">
+        <div>
+          <h2 id="hist-titulo">Histórico de rescisões</h2>
+          <span id="hist-contagem" class="hist-contagem"></span>
+        </div>
+        <div class="hist-acoes">
+          <input id="hist-busca" type="search" placeholder="Buscar por nome, CPF ou empresa" aria-label="Buscar no histórico">
+          <button type="button" id="btn-exportar" class="btn-secundario">Exportar backup</button>
+          <label class="btn-secundario btn-arquivo" for="hist-importar">Importar backup</label>
+          <input id="hist-importar" class="oculto" type="file" accept=".json,application/json">
+        </div>
+      </div>
+      <p id="hist-msg" class="hist-msg" role="status" hidden></p>
+      <div id="hist-lista"></div>
+      <p class="ajuda hist-nota">O histórico fica salvo neste navegador, neste computador. Exporte um backup de tempos em tempos: se os dados do navegador forem apagados, o histórico se perde.</p>
+    </section>
+
+    <div id="editando" class="editando" role="status" hidden></div>
 
     <form id="form-rescisao" novalidate>
       <fieldset>
@@ -316,7 +367,10 @@ table { border-collapse: collapse; width: 100%; }
 
       <div class="acoes">
         <button type="button" id="btn-recibo" class="btn-primario">Gerar recibo de quitação (PDF)</button>
+        <button type="button" id="btn-arquivar" class="btn-secundario btn-arq">Arquivar no histórico</button>
+        <button type="button" id="btn-arquivar-novo" class="btn-secundario btn-arq" hidden>Arquivar como nova rescisão</button>
       </div>
+      <p id="arquivo-msg" class="hist-msg" role="status" hidden></p>
       <p class="ajuda">Na janela de impressão, escolha <strong>Salvar como PDF</strong> como destino.</p>
     </section>
   </div>
@@ -960,6 +1014,9 @@ table { border-collapse: collapse; width: 100%; }
   const form = $('#form-rescisao');
   const respostas = {};          // respostas das confirmações manuais: { 'decimo-2025': 'sim' | 'nao' }
   let ultimoResultado = null;
+  let ultimaEntrada = null;      // entrada que gerou o último resultado (usada pelo histórico)
+  let resultadoAtual = false;    // false quando o formulário mudou depois do cálculo
+  let rolarAoCalcular = true;
 
   if (!C) {
     document.body.insertAdjacentHTML('afterbegin', '<p class="erro-fatal">Falha ao carregar o motor de cálculo. Recarregue a página.</p>');
@@ -1030,8 +1087,8 @@ table { border-collapse: collapse; width: 100%; }
 
   /* ---------------- Itens dinâmicos ---------------- */
 
-  /** Adiciona uma linha de provento ou desconto adicional. */
-  function adicionarItem(tipo) {
+  /** Adiciona uma linha de provento ou desconto adicional (opcionalmente já preenchida). */
+  function adicionarItem(tipo, dados) {
     const row = document.createElement('div');
     row.className = 'item-linha';
     row.innerHTML =
@@ -1040,7 +1097,14 @@ table { border-collapse: collapse; width: 100%; }
       (tipo === 'adicionais' ? '<label class="check item-check"><input type="checkbox" class="item-fgts" checked> Integra base do FGTS</label>' : '') +
       '<button type="button" class="btn-remover" aria-label="Remover item" title="Remover">×</button>';
     $('#lista-' + tipo).appendChild(row);
-    $('.item-nome', row).focus();
+    if (dados) {
+      $('.item-nome', row).value = dados.nome || '';
+      $('.item-valor', row).value = dados.valor || '';
+      const chk = $('.item-fgts', row);
+      if (chk) chk.checked = dados.integraFgts !== false;
+    } else {
+      $('.item-nome', row).focus();
+    }
   }
 
   $$('[data-adicionar]').forEach(function (b) {
@@ -1127,6 +1191,8 @@ table { border-collapse: collapse; width: 100%; }
 
   function marcarDesatualizado() {
     if (!ultimoResultado) return;
+    resultadoAtual = false;
+    document.dispatchEvent(new CustomEvent('rescisao:desatualizada'));
     $('#aviso-desatualizado').hidden = false;
     $('#btn-recibo').disabled = true;
   }
@@ -1194,15 +1260,20 @@ table { border-collapse: collapse; width: 100%; }
     $('#aviso-desatualizado').hidden = true;
     $('#btn-recibo').disabled = false;
     $('#resultado').hidden = false;
-    $('#resultado').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (rolarAoCalcular) $('#resultado').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   form.addEventListener('submit', function (e) {
     e.preventDefault();
     limparErros();
+    resultadoAtual = false;
     try {
-      ultimoResultado = C.calcularRescisao(coletarEntrada());
+      const entradaAtual = coletarEntrada();
+      ultimoResultado = C.calcularRescisao(entradaAtual);
+      ultimaEntrada = JSON.parse(JSON.stringify(entradaAtual));
+      resultadoAtual = true;
       renderizarResultado(ultimoResultado);
+      document.dispatchEvent(new CustomEvent('rescisao:calculada'));
     } catch (err) {
       if (err && err.name === 'ValidacaoError') {
         mostrarErros(err.erros);
@@ -1223,9 +1294,51 @@ table { border-collapse: collapse; width: 100%; }
     renderizarPendencias();
     limparErros();
     ultimoResultado = null;
+    ultimaEntrada = null;
+    resultadoAtual = false;
     $('#resultado').hidden = true;
+    document.dispatchEvent(new CustomEvent('rescisao:limpa'));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
+
+  /**
+   * Preenche o formulário com uma entrada salva (formato de coletarEntrada),
+   * restaurando confirmações manuais, faltas e itens adicionais.
+   */
+  function preencherFormulario(ent) {
+    limparErros();
+    ['empresa', 'nome', 'cpf', 'cargo', 'salario', 'admissao', 'desligamento'].forEach(function (id) {
+      $('#' + id).value = ent[id] || '';
+    });
+    $('#faltas').value = ent.faltas === undefined || ent.faltas === '' ? '0' : ent.faltas;
+    $('#incluirDsr').checked = !!ent.incluirDsr;
+    $('#dsrDias').disabled = !ent.incluirDsr;
+    $('#dsrDias').value = ent.dsrDias || '1';
+    $('#calcularFgts').checked = ent.calcularFgts !== false;
+    Object.keys(respostas).forEach(function (k) { delete respostas[k]; });
+    Object.keys(ent.decimoAnteriorPago || {}).forEach(function (ano) { respostas['decimo-' + ano] = ent.decimoAnteriorPago[ano] ? 'sim' : 'nao'; });
+    Object.keys(ent.feriasVencidasPagas || {}).forEach(function (k) { respostas['ferias-' + k] = ent.feriasVencidasPagas[k] ? 'sim' : 'nao'; });
+    renderizarPendencias();
+    ['adicionais', 'descontos'].forEach(function (tipo) {
+      $('#lista-' + tipo).innerHTML = '';
+      (ent[tipo] || []).forEach(function (it) { adicionarItem(tipo, it); });
+    });
+  }
+
+  /** Interface usada por historico.js. */
+  window.RescisaoUI = {
+    preencherFormulario: preencherFormulario,
+    /** Recalcula a partir do formulário; retorna true se o cálculo foi feito. */
+    calcular: function (rolar) {
+      rolarAoCalcular = rolar !== false;
+      form.dispatchEvent(new Event('submit', { cancelable: true }));
+      rolarAoCalcular = true;
+      return resultadoAtual;
+    },
+    obterCalculoAtual: function () {
+      return resultadoAtual && ultimoResultado ? { entrada: ultimaEntrada, resultado: ultimoResultado } : null;
+    }
+  };
 
   /* ---------------- Recibo (PDF via impressão) ---------------- */
 
@@ -1275,6 +1388,323 @@ table { border-collapse: collapse; width: 100%; }
   });
 
   renderizarPendencias();
+})();
+
+</script>
+  <script>
+/**
+ * ============================================================================
+ *  historico.js — Arquivo de rescisões calculadas
+ * ============================================================================
+ *  - Arquiva a rescisão calculada (dados digitados + resumo) no armazenamento
+ *    local do navegador (localStorage). Os dados ficam só neste computador.
+ *  - Lista, busca, reabre para edição (retificação) e exclui registros.
+ *  - Retificação: ao reabrir um registro e salvar, o mesmo registro é
+ *    atualizado e o contador de retificações aumenta; cada versão anterior
+ *    fica guardada em `versoesAnteriores` (até 20).
+ *  - Exporta/importa backup em .json, para não perder o histórico se os
+ *    dados do navegador forem apagados ou para levar a outro computador.
+ *  Depende de window.RescisaoCalc (calc.js) e window.RescisaoUI (script.js).
+ * ============================================================================
+ */
+(function () {
+  'use strict';
+
+  const C = window.RescisaoCalc;
+  const UI = window.RescisaoUI;
+  if (!C || !UI) return;
+
+  const CHAVE = 'calculoRescisorio.historico.v1';
+  const MAX_VERSOES = 20;
+  const $ = function (s) { return document.querySelector(s); };
+  let editandoId = null;
+  let armazenamentoOk = true;
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function dataHora(iso) {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '—';
+    const p = function (n) { return String(n).padStart(2, '0'); };
+    return p(d.getDate()) + '/' + p(d.getMonth() + 1) + '/' + d.getFullYear() + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+
+  function novoId() {
+    return 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
+
+  /* ---------------- Armazenamento ---------------- */
+
+  /** Lê o histórico. Retorna [] se vazio e null se o navegador bloquear o acesso. */
+  function lerHistorico() {
+    try {
+      const bruto = localStorage.getItem(CHAVE);
+      if (!bruto) return [];
+      const dados = JSON.parse(bruto);
+      return Array.isArray(dados) ? dados.filter(registroValido) : [];
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function gravarHistorico(lista) {
+    try {
+      localStorage.setItem(CHAVE, JSON.stringify(lista));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function registroValido(r) {
+    return r && typeof r.id === 'string' && r.entrada && typeof r.entrada === 'object' && r.resumo && typeof r.resumo === 'object';
+  }
+
+  function resumoDe(resultado) {
+    const d = resultado.dados;
+    return { nome: d.nome, cpf: d.cpf, empresa: d.empresa, admissao: d.admissao, desligamento: d.desligamento, liquido: resultado.liquido, fgts: resultado.fgts ? resultado.fgts.valor : null };
+  }
+
+  /* ---------------- Mensagens e estado de edição ---------------- */
+
+  function mensagem(texto, tipo) {
+    const el = $('#hist-msg');
+    el.textContent = texto;
+    el.className = 'hist-msg ' + (tipo || 'ok');
+    el.hidden = !texto;
+  }
+
+  function mensagemArquivo(texto, tipo) {
+    const el = $('#arquivo-msg');
+    el.textContent = texto;
+    el.className = 'hist-msg ' + (tipo || 'ok');
+    el.hidden = !texto;
+  }
+
+  /** Atualiza a faixa "editando" e os botões de arquivamento conforme o estado. */
+  function atualizarEstadoEdicao() {
+    const lista = lerHistorico() || [];
+    const reg = editandoId ? lista.find(function (r) { return r.id === editandoId; }) : null;
+    if (editandoId && !reg) editandoId = null;
+    const faixa = $('#editando');
+    if (reg) {
+      faixa.innerHTML = '<span><strong>Retificando:</strong> ' + esc(reg.resumo.nome) + ' — arquivada em ' + dataHora(reg.criadoEm) +
+        (reg.retificacoes ? ' · ' + reg.retificacoes + ' retificação(ões)' : '') + '</span>' +
+        '<button type="button" id="btn-cancelar-edicao" class="btn-link">Sair da edição</button>';
+      faixa.hidden = false;
+    } else {
+      faixa.hidden = true;
+      faixa.innerHTML = '';
+    }
+    const calculoOk = !!UI.obterCalculoAtual();
+    $('#btn-arquivar').textContent = reg ? 'Salvar retificação' : 'Arquivar no histórico';
+    $('#btn-arquivar').disabled = !calculoOk || !armazenamentoOk;
+    $('#btn-arquivar-novo').hidden = !reg;
+    $('#btn-arquivar-novo').disabled = !calculoOk || !armazenamentoOk;
+  }
+
+  /* ---------------- Lista ---------------- */
+
+  function renderizarLista() {
+    const lista = lerHistorico();
+    const cont = $('#hist-lista');
+    if (lista === null) {
+      armazenamentoOk = false;
+      cont.innerHTML = '<p class="hist-vazio">O navegador bloqueou o armazenamento local, por isso o histórico não está disponível. Verifique se o modo anônimo está ativo.</p>';
+      $('#hist-contagem').textContent = '';
+      return;
+    }
+    const termo = ($('#hist-busca').value || '').trim().toLowerCase();
+    const termoNum = termo.replace(/\D/g, '');
+    const filtrada = lista
+      .filter(function (r) {
+        if (!termo) return true;
+        const s = r.resumo;
+        return (s.nome || '').toLowerCase().indexOf(termo) !== -1 ||
+          (s.empresa || '').toLowerCase().indexOf(termo) !== -1 ||
+          (termoNum && (s.cpf || '').replace(/\D/g, '').indexOf(termoNum) !== -1);
+      })
+      .sort(function (a, b) { return String(b.alteradoEm).localeCompare(String(a.alteradoEm)); });
+
+    $('#hist-contagem').textContent = lista.length ? lista.length + (lista.length === 1 ? ' rescisão arquivada' : ' rescisões arquivadas') : '';
+
+    if (!lista.length) {
+      cont.innerHTML = '<p class="hist-vazio">Nenhuma rescisão arquivada ainda. Depois de calcular, clique em <strong>Arquivar no histórico</strong>.</p>';
+      return;
+    }
+    if (!filtrada.length) {
+      cont.innerHTML = '<p class="hist-vazio">Nenhum registro encontrado para essa busca.</p>';
+      return;
+    }
+    cont.innerHTML = '<div class="tabela-rolagem"><table class="tabela-hist"><thead><tr>' +
+      '<th>Empregado</th><th>Empresa</th><th>Período</th><th class="num">Líquido</th><th>Atualizado em</th><th></th></tr></thead><tbody>' +
+      filtrada.map(function (r) {
+        const s = r.resumo;
+        const editando = r.id === editandoId;
+        return '<tr' + (editando ? ' class="em-edicao"' : '') + '>' +
+          '<td><strong>' + esc(s.nome) + '</strong><small>' + esc(s.cpf) + '</small></td>' +
+          '<td>' + esc(s.empresa) + '</td>' +
+          '<td class="nowrap">' + esc(s.admissao) + '<small>a ' + esc(s.desligamento) + '</small></td>' +
+          '<td class="num">' + C.formatarMoeda(s.liquido) + '</td>' +
+          '<td class="nowrap">' + dataHora(r.alteradoEm) + (r.retificacoes ? '<small>' + r.retificacoes + ' retificação(ões)</small>' : '<small>original</small>') + '</td>' +
+          '<td class="hist-botoes">' +
+            '<button type="button" class="btn-mini" data-editar="' + esc(r.id) + '">' + (editando ? 'Em edição' : 'Editar') + '</button>' +
+            '<button type="button" class="btn-mini perigo" data-excluir="' + esc(r.id) + '">Excluir</button>' +
+          '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+  }
+
+  /* ---------------- Ações ---------------- */
+
+  /** Grava o cálculo atual: atualiza o registro em edição ou cria um novo. */
+  function arquivar(comoNovo) {
+    const calc = UI.obterCalculoAtual();
+    if (!calc) { mensagemArquivo('Calcule a rescisão antes de arquivar.', 'erro'); return; }
+    const lista = lerHistorico();
+    if (lista === null) { mensagemArquivo('O navegador bloqueou o armazenamento local. Não foi possível arquivar.', 'erro'); return; }
+    const agora = new Date().toISOString();
+    const idx = (!comoNovo && editandoId) ? lista.findIndex(function (r) { return r.id === editandoId; }) : -1;
+    let texto;
+    if (idx >= 0) {
+      const ant = lista[idx];
+      const versoes = (ant.versoesAnteriores || []).concat([{ alteradoEm: ant.alteradoEm, entrada: ant.entrada, resumo: ant.resumo }]).slice(-MAX_VERSOES);
+      lista[idx] = { id: ant.id, criadoEm: ant.criadoEm, alteradoEm: agora, retificacoes: (ant.retificacoes || 0) + 1, entrada: calc.entrada, resumo: resumoDe(calc.resultado), versoesAnteriores: versoes };
+      texto = 'Retificação salva em ' + dataHora(agora) + '. A versão anterior foi guardada no registro.';
+    } else {
+      const reg = { id: novoId(), criadoEm: agora, alteradoEm: agora, retificacoes: 0, entrada: calc.entrada, resumo: resumoDe(calc.resultado), versoesAnteriores: [] };
+      lista.push(reg);
+      editandoId = reg.id;
+      texto = 'Rescisão arquivada em ' + dataHora(agora) + '. Alterações futuras deste cálculo serão salvas como retificação.';
+    }
+    if (!gravarHistorico(lista)) { mensagemArquivo('Não foi possível gravar: o armazenamento do navegador está cheio ou bloqueado. Exporte um backup e tente novamente.', 'erro'); return; }
+    mensagemArquivo(texto, 'ok');
+    renderizarLista();
+    atualizarEstadoEdicao();
+  }
+
+  /** Reabre um registro no formulário e recalcula para conferência. */
+  function editar(id) {
+    const lista = lerHistorico() || [];
+    const reg = lista.find(function (r) { return r.id === id; });
+    if (!reg) { mensagem('Registro não encontrado. Ele pode ter sido excluído.', 'erro'); renderizarLista(); return; }
+    UI.preencherFormulario(reg.entrada);
+    editandoId = id;
+    UI.calcular(false);
+    mensagemArquivo('', 'ok');
+    renderizarLista();
+    atualizarEstadoEdicao();
+    $('#editando').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  const exclusaoPendente = {};
+  /** Exclusão em dois cliques: o primeiro pede confirmação no próprio botão. */
+  function excluir(botao, id) {
+    if (!exclusaoPendente[id]) {
+      exclusaoPendente[id] = setTimeout(function () {
+        delete exclusaoPendente[id];
+        if (document.body.contains(botao)) { botao.textContent = 'Excluir'; botao.classList.remove('confirmar'); }
+      }, 5000);
+      botao.textContent = 'Confirmar exclusão';
+      botao.classList.add('confirmar');
+      return;
+    }
+    clearTimeout(exclusaoPendente[id]);
+    delete exclusaoPendente[id];
+    const lista = lerHistorico() || [];
+    const reg = lista.find(function (r) { return r.id === id; });
+    if (!gravarHistorico(lista.filter(function (r) { return r.id !== id; }))) { mensagem('Não foi possível excluir: armazenamento bloqueado.', 'erro'); return; }
+    if (editandoId === id) editandoId = null;
+    mensagem(reg ? 'Rescisão de ' + reg.resumo.nome + ' excluída do histórico.' : 'Registro excluído.', 'ok');
+    renderizarLista();
+    atualizarEstadoEdicao();
+  }
+
+  /** Baixa o histórico completo em .json. */
+  function exportar() {
+    const lista = lerHistorico();
+    if (!lista || !lista.length) { mensagem('Não há rescisões arquivadas para exportar.', 'erro'); return; }
+    const conteudo = JSON.stringify({ aplicativo: 'calculo-rescisorio', versao: 1, exportadoEm: new Date().toISOString(), registros: lista }, null, 2);
+    const blob = new Blob([conteudo], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const hoje = new Date();
+    a.href = url;
+    a.download = 'historico-rescisoes-' + hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0') + '-' + String(hoje.getDate()).padStart(2, '0') + '.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    mensagem('Backup exportado com ' + lista.length + ' rescisão(ões). Guarde o arquivo em local seguro: ele contém dados pessoais.', 'ok');
+  }
+
+  /** Importa um backup .json, mesclando por registro (vale a versão mais recente). */
+  function importar(arquivo) {
+    const leitor = new FileReader();
+    leitor.onload = function () {
+      let dados;
+      try { dados = JSON.parse(leitor.result); } catch (e) { mensagem('Arquivo inválido: não é um backup do histórico.', 'erro'); return; }
+      const registros = Array.isArray(dados) ? dados : (dados && dados.registros);
+      if (!Array.isArray(registros)) { mensagem('Arquivo inválido: não é um backup do histórico.', 'erro'); return; }
+      const lista = lerHistorico();
+      if (lista === null) { mensagem('O navegador bloqueou o armazenamento local.', 'erro'); return; }
+      let novos = 0, atualizados = 0, ignorados = 0;
+      registros.forEach(function (r) {
+        if (!registroValido(r)) { ignorados++; return; }
+        const idx = lista.findIndex(function (x) { return x.id === r.id; });
+        if (idx === -1) { lista.push(r); novos++; }
+        else if (String(r.alteradoEm) > String(lista[idx].alteradoEm)) { lista[idx] = r; atualizados++; }
+        else { ignorados++; }
+      });
+      if (!gravarHistorico(lista)) { mensagem('Não foi possível gravar o backup importado.', 'erro'); return; }
+      mensagem('Importação concluída: ' + novos + ' nova(s), ' + atualizados + ' atualizada(s), ' + ignorados + ' já existente(s) ou inválida(s).', 'ok');
+      renderizarLista();
+      atualizarEstadoEdicao();
+    };
+    leitor.onerror = function () { mensagem('Não foi possível ler o arquivo.', 'erro'); };
+    leitor.readAsText(arquivo);
+  }
+
+  /* ---------------- Eventos ---------------- */
+
+  $('#hist-busca').addEventListener('input', renderizarLista);
+  $('#hist-lista').addEventListener('click', function (e) {
+    const ed = e.target.closest('[data-editar]');
+    if (ed) { editar(ed.getAttribute('data-editar')); return; }
+    const ex = e.target.closest('[data-excluir]');
+    if (ex) excluir(ex, ex.getAttribute('data-excluir'));
+  });
+  $('#btn-arquivar').addEventListener('click', function () { arquivar(false); });
+  $('#btn-arquivar-novo').addEventListener('click', function () { arquivar(true); });
+  const btnExportar = $('#btn-exportar');
+  if (btnExportar) btnExportar.addEventListener('click', exportar);
+  $('#hist-importar').addEventListener('change', function (e) {
+    if (e.target.files && e.target.files[0]) importar(e.target.files[0]);
+    e.target.value = '';
+  });
+  $('#editando').addEventListener('click', function (e) {
+    if (e.target.id !== 'btn-cancelar-edicao') return;
+    editandoId = null;
+    mensagemArquivo('', 'ok');
+    renderizarLista();
+    atualizarEstadoEdicao();
+  });
+  document.addEventListener('rescisao:calculada', function () { mensagemArquivo('', 'ok'); atualizarEstadoEdicao(); });
+  document.addEventListener('rescisao:desatualizada', atualizarEstadoEdicao);
+  document.addEventListener('rescisao:limpa', function () { editandoId = null; mensagemArquivo('', 'ok'); renderizarLista(); atualizarEstadoEdicao(); });
+
+  // Verifica se o armazenamento está disponível
+  try {
+    localStorage.setItem(CHAVE + '.teste', '1');
+    localStorage.removeItem(CHAVE + '.teste');
+  } catch (e) {
+    armazenamentoOk = false;
+  }
+  renderizarLista();
+  atualizarEstadoEdicao();
 })();
 
 </script>
