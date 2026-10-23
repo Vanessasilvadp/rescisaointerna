@@ -1,7 +1,10 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
-<title>Rescisão sem Registro</title>
-<meta name="claude:viewport-fit-sides" content="cover">
-<style>
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cálculo Rescisório — Vínculo não registrado</title>
+  <style>
 /* ==========================================================================
    styles.css — Cálculo rescisório (tela + impressão do recibo)
    ========================================================================== */
@@ -23,22 +26,7 @@
   --ok-fundo: #ecfdf3;
   --info-fundo: #eef4fb;
   --raio: 8px;
-  --campo-fundo: #ffffff; --desabilitado: #eef0f3; --linha-total: #f7f8fa; --memoria-fundo: #fafbfc;
-  --tag-texto: #4a3200; --alerta-texto: #5c3d00; --info-borda: #c8d8ea; --ok-borda: #abefc6;
-  --badge-ok: #d1fadf; --badge-erro: #fee4e2; --sobre-primaria: #ffffff;
 }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --fundo: #13171e; --cartao: #1b212b; --texto: #e6e9ef; --suave: #9aa3b2; --borda: #313a48;
-  --primaria: #6fa8dc; --primaria-escura: #8dbbe5; --erro: #f97066; --erro-fundo: #3a1d1b;
-  --alerta: #f0c24b; --alerta-fundo: #2e2611; --alerta-borda: #8a6d1f; --ok: #47cd89; --ok-fundo: #12291e;
-  --info-fundo: #17263a; --campo-fundo: #11161d; --desabilitado: #232a35; --linha-total: #222a36;
-  --memoria-fundo: #171d26; --tag-texto: #fff3d1; --alerta-texto: #f3d58a; --info-borda: #2c4766;
-  --ok-borda: #24583f; --badge-ok: #1d4a33; --badge-erro: #4a201d; --sobre-primaria: #0f1620; color-scheme: dark; } }
-:root[data-theme="dark"] { --fundo: #13171e; --cartao: #1b212b; --texto: #e6e9ef; --suave: #9aa3b2; --borda: #313a48;
-  --primaria: #6fa8dc; --primaria-escura: #8dbbe5; --erro: #f97066; --erro-fundo: #3a1d1b;
-  --alerta: #f0c24b; --alerta-fundo: #2e2611; --alerta-borda: #8a6d1f; --ok: #47cd89; --ok-fundo: #12291e;
-  --info-fundo: #17263a; --campo-fundo: #11161d; --desabilitado: #232a35; --linha-total: #222a36;
-  --memoria-fundo: #171d26; --tag-texto: #fff3d1; --alerta-texto: #f3d58a; --info-borda: #2c4766;
-  --ok-borda: #24583f; --badge-ok: #1d4a33; --badge-erro: #4a201d; --sobre-primaria: #0f1620; color-scheme: dark; }
 
 * { box-sizing: border-box; }
 
@@ -49,8 +37,7 @@ body {
   font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
-.app { max-width: 960px; margin: 0 auto; padding-block: 24px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-.campo, .item-linha > *, .resultado { min-width: 0; }
+.app { max-width: 960px; margin: 0 auto; padding: 24px 16px 64px; }
 
 .topo h1 { margin: 0; font-size: 1.6rem; color: var(--primaria); }
 .topo p { margin: 4px 0 16px; color: var(--suave); }
@@ -87,11 +74,11 @@ input[type="text"], input[type="number"], input[type="date"] {
   border: 1px solid var(--borda);
   border-radius: 6px;
   font: inherit;
-  background: var(--campo-fundo);
+  background: #fff;
   color: var(--texto);
 }
 input:focus { outline: 2px solid var(--primaria); outline-offset: 1px; border-color: var(--primaria); }
-input:disabled { background: var(--desabilitado); color: var(--suave); }
+input:disabled { background: #eef0f3; color: var(--suave); }
 
 .check { display: flex; align-items: center; gap: 8px; font-weight: 500; cursor: pointer; }
 .check input { width: 16px; height: 16px; }
@@ -103,18 +90,18 @@ input:disabled { background: var(--desabilitado); color: var(--suave); }
 .pendencias { border: 2px solid var(--alerta-borda); background: var(--alerta-fundo); }
 .pendencias legend { color: var(--alerta); }
 .ajuda { color: var(--suave); font-size: .88rem; margin: 0 0 10px; }
-.pendencia { background: var(--cartao); border: 1px solid var(--alerta-borda); border-radius: 6px; padding: 10px 12px; margin-top: 10px; }
+.pendencia { background: #fff; border: 1px solid var(--alerta-borda); border-radius: 6px; padding: 10px 12px; margin-top: 10px; }
 .pendencia.tem-erro { border-color: var(--erro); box-shadow: 0 0 0 2px var(--erro-fundo); }
 .pendencia .pergunta { margin: 4px 0 8px; font-weight: 600; }
 .radios { display: flex; flex-wrap: wrap; gap: 8px 20px; }
 .radios label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
-.tag { display: inline-block; font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; background: var(--alerta-borda); color: var(--tag-texto); padding: 2px 7px; border-radius: 10px; font-weight: 700; }
+.tag { display: inline-block; font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; background: var(--alerta-borda); color: #4a3200; padding: 2px 7px; border-radius: 10px; font-weight: 700; }
 
 /* Itens dinâmicos */
 .lista-itens:empty { display: none; }
 .item-linha { display: grid; grid-template-columns: 1fr 160px auto auto; gap: 10px; align-items: start; padding: 10px 0; border-bottom: 1px dashed var(--borda); }
 .item-check { margin-top: 30px; font-size: .85rem; white-space: nowrap; }
-.btn-remover { margin-top: 24px; width: 36px; height: 36px; border: 1px solid var(--borda); background: var(--cartao); border-radius: 6px; font-size: 1.2rem; cursor: pointer; color: var(--erro); }
+.btn-remover { margin-top: 24px; width: 36px; height: 36px; border: 1px solid var(--borda); background: #fff; border-radius: 6px; font-size: 1.2rem; cursor: pointer; color: var(--erro); }
 @media (max-width: 640px) {
   .item-linha { grid-template-columns: 1fr auto; }
   .item-check { margin-top: 0; grid-column: 1; }
@@ -123,10 +110,10 @@ input:disabled { background: var(--desabilitado); color: var(--suave); }
 /* Botões */
 .acoes { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
 button { font: inherit; cursor: pointer; }
-.btn-primario { background: var(--primaria); color: var(--sobre-primaria); border: 0; border-radius: 6px; padding: 11px 20px; font-weight: 600; }
+.btn-primario { background: var(--primaria); color: #fff; border: 0; border-radius: 6px; padding: 11px 20px; font-weight: 600; }
 .btn-primario:hover { background: var(--primaria-escura); }
 .btn-primario:disabled { background: #9aa4b2; cursor: not-allowed; }
-.btn-secundario { background: var(--cartao); color: var(--primaria); border: 1px solid var(--primaria); border-radius: 6px; padding: 9px 16px; margin-top: 10px; }
+.btn-secundario { background: #fff; color: var(--primaria); border: 1px solid var(--primaria); border-radius: 6px; padding: 9px 16px; margin-top: 10px; }
 
 .erros-resumo { background: var(--erro-fundo); border: 1px solid var(--erro); color: var(--erro); border-radius: var(--raio); padding: 12px 14px; margin-bottom: 12px; }
 .erros-resumo ul { margin: 6px 0 0; padding-left: 20px; }
@@ -143,32 +130,32 @@ button { font: inherit; cursor: pointer; }
 
 .caixa { border-radius: 6px; padding: 10px 14px; margin: 12px 0; font-size: .9rem; }
 .caixa ul { margin: 6px 0 0; padding-left: 20px; }
-.caixa.alerta { background: var(--alerta-fundo); border: 1px solid var(--alerta-borda); color: var(--alerta-texto); }
-.caixa.confirmacao { background: var(--cartao); border: 1px solid var(--alerta-borda); }
-.caixa.info { background: var(--info-fundo); border: 1px solid var(--info-borda); }
-.caixa.fgts { background: var(--ok-fundo); border: 1px solid var(--ok-borda); }
+.caixa.alerta { background: var(--alerta-fundo); border: 1px solid var(--alerta-borda); color: #5c3d00; }
+.caixa.confirmacao { background: #fff; border: 1px solid var(--alerta-borda); }
+.caixa.info { background: var(--info-fundo); border: 1px solid #c8d8ea; }
+.caixa.fgts { background: var(--ok-fundo); border: 1px solid #abefc6; }
 .fgts-topo { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 .fgts-topo small { display: block; color: var(--suave); }
 .fgts-valor { font-size: 1.3rem; font-weight: 700; color: var(--ok); }
 .caixa details { margin-top: 8px; }
 
-.badge { display: inline-block; font-size: .7rem; font-weight: 700; text-transform: uppercase; padding: 1px 7px; border-radius: 10px; background: var(--alerta-borda); color: var(--tag-texto); vertical-align: middle; }
-.badge.pago { background: var(--badge-ok); color: var(--ok); }
-.badge.naopago { background: var(--badge-erro); color: var(--erro); }
+.badge { display: inline-block; font-size: .7rem; font-weight: 700; text-transform: uppercase; padding: 1px 7px; border-radius: 10px; background: var(--alerta-borda); color: #4a3200; vertical-align: middle; }
+.badge.pago { background: #d1fadf; color: var(--ok); }
+.badge.naopago { background: #fee4e2; color: var(--erro); }
 
 .tabela-rolagem { overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; }
 .tabela-verbas th, .tabela-verbas td, .tabela-mini th, .tabela-mini td { padding: 8px 10px; border-bottom: 1px solid var(--borda); text-align: left; }
-.tabela-verbas thead th { background: var(--primaria); color: var(--sobre-primaria); font-weight: 600; }
-.tabela-verbas tfoot td { font-weight: 700; background: var(--linha-total); }
-.tabela-verbas .liquido td { background: var(--primaria); color: var(--sobre-primaria); font-size: 1.05rem; }
-.tabela-mini { font-size: .85rem; margin-top: 6px; background: var(--cartao); }
+.tabela-verbas thead th { background: var(--primaria); color: #fff; font-weight: 600; }
+.tabela-verbas tfoot td { font-weight: 700; background: #f7f8fa; }
+.tabela-verbas .liquido td { background: var(--primaria); color: #fff; font-size: 1.05rem; }
+.tabela-mini { font-size: .85rem; margin-top: 6px; background: #fff; }
 .num { text-align: right !important; white-space: nowrap; }
 .ref { color: var(--suave); white-space: nowrap; }
 .desc { color: var(--erro); }
-.liquido .desc, .liquido .num { color: var(--sobre-primaria); }
+.liquido .desc, .liquido .num { color: #fff; }
 
-.memoria-item { border: 1px solid var(--borda); border-radius: 6px; margin-bottom: 6px; background: var(--memoria-fundo); }
+.memoria-item { border: 1px solid var(--borda); border-radius: 6px; margin-bottom: 6px; background: #fafbfc; }
 .memoria-item.manual { border-left: 4px solid var(--alerta-borda); }
 .memoria-item summary { display: flex; justify-content: space-between; gap: 12px; padding: 8px 12px; cursor: pointer; font-weight: 600; }
 .memoria-item ol { margin: 0; padding: 0 16px 10px 36px; font-size: .88rem; color: var(--suave); }
@@ -176,32 +163,33 @@ table { border-collapse: collapse; width: 100%; }
 /* Recibo: oculto na tela, único conteúdo na impressão */
 .recibo { display: none; }
 
-
-/* Recibo exibido na tela (no chat a impressão é bloqueada). Folha sempre branca, como o papel. */
-.recibo-area { max-width: 960px; margin: 0 auto; padding-block: 0 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-.recibo-area h2 { color: var(--primaria); margin: 0 0 4px; }
-.recibo-rolagem { overflow-x: auto; padding: 4px 0 16px; }
-.recibo.visivel { display: block; background: #ffffff; color: #000000; width: 760px; margin: 0 auto; padding: 48px 52px; box-shadow: 0 2px 14px rgba(0,0,0,.25); border-radius: 2px; font: 14px/1.45 Georgia, "Times New Roman", serif; }
-.recibo.visivel h1 { font-size: 17px; text-align: center; text-transform: uppercase; margin: 0 0 16px; letter-spacing: .03em; color: #000000; }
-.recibo.visivel table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
-.recibo.visivel th, .recibo.visivel td { border: 1px solid #000000; padding: 5px 7px; text-align: left; vertical-align: top; color: #000000; background: transparent; }
-.recibo.visivel .rb-dados th { width: 18%; background: #eeeeee; }
-.recibo.visivel .rb-verbas thead th { background: #eeeeee; }
-.recibo.visivel .rb-verbas tfoot td { font-weight: 700; }
-.recibo.visivel .rb-liquido td { background: #dddddd; font-size: 15px; }
-.recibo.visivel .num { text-align: right !important; white-space: nowrap; }
-.recibo.visivel .rb-nota { font-size: 13px; }
-.recibo.visivel .rb-declaracao { text-align: justify; margin: 16px 0; }
-.recibo.visivel .rb-local { margin: 24px 0 48px; }
-.recibo.visivel .rb-assinaturas { display: flex; justify-content: space-between; gap: 40px; }
-.recibo.visivel .rb-assinaturas div { flex: 1; text-align: center; }
-.recibo.visivel .rb-assinaturas span { display: block; border-top: 1px solid #000000; margin-bottom: 4px; }
-.recibo.visivel .rb-assinaturas small { display: block; font-size: 11px; }
-.recibo.visivel .rb-rodape { margin-top: 36px; font-size: 10px; color: #555555; text-align: right; }
-.exemplo { background: var(--info-fundo); border: 1px dashed var(--primaria); border-radius: var(--raio); padding: 10px 14px; margin: 0 0 16px; font-size: .9rem; }
+@media print {
+  @page { size: A4; margin: 18mm 16mm; }
+  body { background: #fff; font: 11pt/1.45 Georgia, "Times New Roman", serif; color: #000; }
+  .app { display: none !important; }
+  .recibo { display: block; }
+  .recibo h1 { font-size: 14pt; text-align: center; text-transform: uppercase; margin: 0 0 14px; letter-spacing: .03em; }
+  .recibo table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+  .recibo th, .recibo td { border: 1px solid #000; padding: 5px 7px; text-align: left; vertical-align: top; }
+  .rb-dados th { width: 18%; background: #eee; font-weight: 700; }
+  .rb-verbas thead th { background: #eee; }
+  .rb-verbas tfoot td { font-weight: 700; }
+  .rb-liquido td { background: #ddd; font-size: 12pt; }
+  .recibo .num { text-align: right; }
+  .rb-nota { font-size: 10pt; }
+  .rb-declaracao { text-align: justify; margin: 16px 0; }
+  .rb-local { margin: 24px 0 48px; }
+  .rb-assinaturas { display: flex; justify-content: space-between; gap: 40px; }
+  .rb-assinaturas div { flex: 1; text-align: center; }
+  .rb-assinaturas span { display: block; border-top: 1px solid #000; margin-bottom: 4px; }
+  .rb-assinaturas small { display: block; font-size: 9pt; }
+  .rb-rodape { margin-top: 36px; font-size: 8pt; color: #555; text-align: right; }
+  .recibo tr, .rb-assinaturas { page-break-inside: avoid; }
+}
 
 </style>
-
+</head>
+<body>
   <div class="app">
     <header class="topo">
       <h1>Cálculo rescisório</h1>
@@ -214,29 +202,28 @@ table { border-collapse: collapse; width: 100%; }
       férias em dobro nem atualização monetária.
     </aside>
 
-    <p class="exemplo"><strong>Dados de exemplo preenchidos.</strong> Troque pelos dados reais e clique em Calcular rescisão.</p>
     <form id="form-rescisao" novalidate>
       <fieldset>
         <legend>Empresa e empregado</legend>
         <div class="grade">
           <div class="campo largo">
             <label for="empresa">Nome da empresa *</label>
-            <input id="empresa" value="Exemplo Comércio Ltda" type="text" maxlength="120" autocomplete="organization">
+            <input id="empresa" type="text" placeholder="Ex.: Comércio Exemplo Ltda" maxlength="120" autocomplete="organization">
             <span class="erro-campo"></span>
           </div>
           <div class="campo largo">
             <label for="nome">Nome completo do empregado *</label>
-            <input id="nome" value="Maria Exemplo da Silva" type="text" maxlength="120" autocomplete="off">
+            <input id="nome" type="text" placeholder="Nome e sobrenome do empregado" maxlength="120" autocomplete="off">
             <span class="erro-campo"></span>
           </div>
           <div class="campo">
             <label for="cpf">CPF *</label>
-            <input id="cpf" value="529.982.247-25" type="text" inputmode="numeric" maxlength="14" placeholder="000.000.000-00" autocomplete="off">
+            <input id="cpf" type="text" inputmode="numeric" maxlength="14" placeholder="000.000.000-00" autocomplete="off">
             <span class="erro-campo"></span>
           </div>
           <div class="campo">
             <label for="cargo">Cargo <span class="opcional">(opcional)</span></label>
-            <input id="cargo" value="Auxiliar administrativo" type="text" maxlength="80">
+            <input id="cargo" type="text" placeholder="Ex.: Auxiliar administrativo" maxlength="80">
             <span class="erro-campo"></span>
           </div>
         </div>
@@ -247,17 +234,17 @@ table { border-collapse: collapse; width: 100%; }
         <div class="grade">
           <div class="campo">
             <label for="salario">Salário base (R$) *</label>
-            <input id="salario" value="3.000,00" type="text" inputmode="decimal" placeholder="0,00" data-moeda>
+            <input id="salario" type="text" inputmode="decimal" placeholder="Ex.: 1.518,00" data-moeda>
             <span class="erro-campo"></span>
           </div>
           <div class="campo">
             <label for="admissao">Data de admissão *</label>
-            <input id="admissao" type="date" value="2026-03-10">
+            <input id="admissao" type="date">
             <span class="erro-campo"></span>
           </div>
           <div class="campo">
             <label for="desligamento">Data de desligamento *</label>
-            <input id="desligamento" type="date" value="2026-10-20">
+            <input id="desligamento" type="date">
             <span class="erro-campo"></span>
           </div>
         </div>
@@ -328,13 +315,13 @@ table { border-collapse: collapse; width: 100%; }
       <div id="res-observacoes"></div>
 
       <div class="acoes">
-        <button type="button" id="btn-recibo" class="btn-primario">Visualizar recibo de quitação</button>
+        <button type="button" id="btn-recibo" class="btn-primario">Gerar recibo de quitação (PDF)</button>
       </div>
-      <p class="ajuda">Aqui no chat o navegador não permite imprimir, então o recibo aparece logo abaixo para conferência. Para salvar o PDF, abra o arquivo calculo-rescisorio.html no seu navegador.</p>
+      <p class="ajuda">Na janela de impressão, escolha <strong>Salvar como PDF</strong> como destino.</p>
     </section>
   </div>
 
-  <section id="recibo-area" class="recibo-area" hidden><h2>Recibo de rescisão e quitação</h2><p class="ajuda">Prévia exata do documento que sai em PDF no arquivo calculo-rescisorio.html.</p><div class="recibo-rolagem"><section id="recibo" class="recibo"></section></div></section>
+  <section id="recibo" class="recibo" aria-hidden="true"></section>
 
   <script>
 /**
@@ -973,7 +960,6 @@ table { border-collapse: collapse; width: 100%; }
   const form = $('#form-rescisao');
   const respostas = {};          // respostas das confirmações manuais: { 'decimo-2025': 'sim' | 'nao' }
   let ultimoResultado = null;
-  let inicial = true;
 
   if (!C) {
     document.body.insertAdjacentHTML('afterbegin', '<p class="erro-fatal">Falha ao carregar o motor de cálculo. Recarregue a página.</p>');
@@ -1143,7 +1129,6 @@ table { border-collapse: collapse; width: 100%; }
     if (!ultimoResultado) return;
     $('#aviso-desatualizado').hidden = false;
     $('#btn-recibo').disabled = true;
-    $('#recibo-area').hidden = true;
   }
   form.addEventListener('input', marcarDesatualizado);
   form.addEventListener('change', marcarDesatualizado);
@@ -1209,7 +1194,7 @@ table { border-collapse: collapse; width: 100%; }
     $('#aviso-desatualizado').hidden = true;
     $('#btn-recibo').disabled = false;
     $('#resultado').hidden = false;
-    if (!inicial) $('#resultado').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    $('#resultado').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   form.addEventListener('submit', function (e) {
@@ -1239,7 +1224,6 @@ table { border-collapse: collapse; width: 100%; }
     limparErros();
     ultimoResultado = null;
     $('#resultado').hidden = true;
-    $('#recibo-area').hidden = true;
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 
@@ -1283,16 +1267,16 @@ table { border-collapse: collapse; width: 100%; }
   $('#btn-recibo').addEventListener('click', function () {
     if (!ultimoResultado) return;
     $('#recibo').innerHTML = montarRecibo(ultimoResultado);
-    $('#recibo').classList.add('visivel');
-    $('#recibo-area').hidden = false;
-    $('#recibo-area').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const tituloOriginal = document.title;
+    document.title = 'Recibo rescisao - ' + ultimoResultado.dados.nome;
+    const restaurar = function () { document.title = tituloOriginal; window.removeEventListener('afterprint', restaurar); };
+    window.addEventListener('afterprint', restaurar);
+    window.print();
   });
 
   renderizarPendencias();
-  form.dispatchEvent(new Event('submit', { cancelable: true }));
-  inicial = false;
 })();
 
 </script>
-
-</body></html>
+</body>
+</html>
