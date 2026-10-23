@@ -1,0 +1,1298 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Rescisão sem Registro</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* ==========================================================================
+   styles.css — Cálculo rescisório (tela + impressão do recibo)
+   ========================================================================== */
+
+:root {
+  --fundo: #f4f5f7;
+  --cartao: #ffffff;
+  --texto: #1d2330;
+  --suave: #5c6474;
+  --borda: #d9dde4;
+  --primaria: #1f4e79;
+  --primaria-escura: #163a5b;
+  --erro: #b42318;
+  --erro-fundo: #fef3f2;
+  --alerta: #8a5a00;
+  --alerta-fundo: #fff8e6;
+  --alerta-borda: #f0c24b;
+  --ok: #18794e;
+  --ok-fundo: #ecfdf3;
+  --info-fundo: #eef4fb;
+  --raio: 8px;
+  --campo-fundo: #ffffff; --desabilitado: #eef0f3; --linha-total: #f7f8fa; --memoria-fundo: #fafbfc;
+  --tag-texto: #4a3200; --alerta-texto: #5c3d00; --info-borda: #c8d8ea; --ok-borda: #abefc6;
+  --badge-ok: #d1fadf; --badge-erro: #fee4e2; --sobre-primaria: #ffffff;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --fundo: #13171e; --cartao: #1b212b; --texto: #e6e9ef; --suave: #9aa3b2; --borda: #313a48;
+  --primaria: #6fa8dc; --primaria-escura: #8dbbe5; --erro: #f97066; --erro-fundo: #3a1d1b;
+  --alerta: #f0c24b; --alerta-fundo: #2e2611; --alerta-borda: #8a6d1f; --ok: #47cd89; --ok-fundo: #12291e;
+  --info-fundo: #17263a; --campo-fundo: #11161d; --desabilitado: #232a35; --linha-total: #222a36;
+  --memoria-fundo: #171d26; --tag-texto: #fff3d1; --alerta-texto: #f3d58a; --info-borda: #2c4766;
+  --ok-borda: #24583f; --badge-ok: #1d4a33; --badge-erro: #4a201d; --sobre-primaria: #0f1620; color-scheme: dark; } }
+:root[data-theme="dark"] { --fundo: #13171e; --cartao: #1b212b; --texto: #e6e9ef; --suave: #9aa3b2; --borda: #313a48;
+  --primaria: #6fa8dc; --primaria-escura: #8dbbe5; --erro: #f97066; --erro-fundo: #3a1d1b;
+  --alerta: #f0c24b; --alerta-fundo: #2e2611; --alerta-borda: #8a6d1f; --ok: #47cd89; --ok-fundo: #12291e;
+  --info-fundo: #17263a; --campo-fundo: #11161d; --desabilitado: #232a35; --linha-total: #222a36;
+  --memoria-fundo: #171d26; --tag-texto: #fff3d1; --alerta-texto: #f3d58a; --info-borda: #2c4766;
+  --ok-borda: #24583f; --badge-ok: #1d4a33; --badge-erro: #4a201d; --sobre-primaria: #0f1620; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--fundo);
+  color: var(--texto);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.app { max-width: 960px; margin: 0 auto; padding-block: 24px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.campo, .item-linha > *, .resultado { min-width: 0; }
+
+.topo h1 { margin: 0; font-size: 1.6rem; color: var(--primaria); }
+.topo p { margin: 4px 0 16px; color: var(--suave); }
+
+.aviso-escopo {
+  background: var(--info-fundo);
+  border-left: 4px solid var(--primaria);
+  padding: 12px 14px;
+  border-radius: var(--raio);
+  font-size: .9rem;
+  margin-bottom: 20px;
+}
+
+fieldset {
+  background: var(--cartao);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 16px 18px 18px;
+  margin: 0 0 16px;
+}
+legend { font-weight: 700; padding: 0 6px; color: var(--primaria); }
+
+.grade { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px 16px; }
+.campo.largo { grid-column: span 2; }
+@media (max-width: 560px) { .campo.largo { grid-column: span 1; } }
+
+.campo label { display: block; font-weight: 600; font-size: .88rem; margin-bottom: 4px; }
+.campo label.sub { font-weight: 500; color: var(--suave); margin-top: 6px; }
+.opcional { font-weight: 400; color: var(--suave); }
+
+input[type="text"], input[type="number"], input[type="date"] {
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid var(--borda);
+  border-radius: 6px;
+  font: inherit;
+  background: var(--campo-fundo);
+  color: var(--texto);
+}
+input:focus { outline: 2px solid var(--primaria); outline-offset: 1px; border-color: var(--primaria); }
+input:disabled { background: var(--desabilitado); color: var(--suave); }
+
+.check { display: flex; align-items: center; gap: 8px; font-weight: 500; cursor: pointer; }
+.check input { width: 16px; height: 16px; }
+
+.erro-campo { display: block; color: var(--erro); font-size: .82rem; min-height: 0; margin-top: 3px; }
+.tem-erro input[type="text"], .tem-erro input[type="number"], .tem-erro input[type="date"] { border-color: var(--erro); background: var(--erro-fundo); }
+
+/* Confirmações manuais */
+.pendencias { border: 2px solid var(--alerta-borda); background: var(--alerta-fundo); }
+.pendencias legend { color: var(--alerta); }
+.ajuda { color: var(--suave); font-size: .88rem; margin: 0 0 10px; }
+.pendencia { background: var(--cartao); border: 1px solid var(--alerta-borda); border-radius: 6px; padding: 10px 12px; margin-top: 10px; }
+.pendencia.tem-erro { border-color: var(--erro); box-shadow: 0 0 0 2px var(--erro-fundo); }
+.pendencia .pergunta { margin: 4px 0 8px; font-weight: 600; }
+.radios { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.radios label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
+.tag { display: inline-block; font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; background: var(--alerta-borda); color: var(--tag-texto); padding: 2px 7px; border-radius: 10px; font-weight: 700; }
+
+/* Itens dinâmicos */
+.lista-itens:empty { display: none; }
+.item-linha { display: grid; grid-template-columns: 1fr 160px auto auto; gap: 10px; align-items: start; padding: 10px 0; border-bottom: 1px dashed var(--borda); }
+.item-check { margin-top: 30px; font-size: .85rem; white-space: nowrap; }
+.btn-remover { margin-top: 24px; width: 36px; height: 36px; border: 1px solid var(--borda); background: var(--cartao); border-radius: 6px; font-size: 1.2rem; cursor: pointer; color: var(--erro); }
+@media (max-width: 640px) {
+  .item-linha { grid-template-columns: 1fr auto; }
+  .item-check { margin-top: 0; grid-column: 1; }
+}
+
+/* Botões */
+.acoes { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+button { font: inherit; cursor: pointer; }
+.btn-primario { background: var(--primaria); color: var(--sobre-primaria); border: 0; border-radius: 6px; padding: 11px 20px; font-weight: 600; }
+.btn-primario:hover { background: var(--primaria-escura); }
+.btn-primario:disabled { background: #9aa4b2; cursor: not-allowed; }
+.btn-secundario { background: var(--cartao); color: var(--primaria); border: 1px solid var(--primaria); border-radius: 6px; padding: 9px 16px; margin-top: 10px; }
+
+.erros-resumo { background: var(--erro-fundo); border: 1px solid var(--erro); color: var(--erro); border-radius: var(--raio); padding: 12px 14px; margin-bottom: 12px; }
+.erros-resumo ul { margin: 6px 0 0; padding-left: 20px; }
+.erro-fatal { background: var(--erro-fundo); color: var(--erro); padding: 16px; margin: 0; font-weight: 600; }
+
+/* Resultado */
+.resultado { background: var(--cartao); border: 1px solid var(--borda); border-radius: var(--raio); padding: 20px; margin-top: 24px; }
+.resultado h2 { margin: 0 0 12px; color: var(--primaria); }
+.resultado h3 { margin: 24px 0 8px; }
+.aviso-desatualizado { background: var(--alerta-fundo); border: 1px solid var(--alerta-borda); color: var(--alerta); padding: 10px 12px; border-radius: 6px; margin-bottom: 14px; }
+
+.res-dados { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px 16px; margin-bottom: 14px; }
+.res-dados span { display: block; font-size: .75rem; text-transform: uppercase; color: var(--suave); letter-spacing: .04em; }
+
+.caixa { border-radius: 6px; padding: 10px 14px; margin: 12px 0; font-size: .9rem; }
+.caixa ul { margin: 6px 0 0; padding-left: 20px; }
+.caixa.alerta { background: var(--alerta-fundo); border: 1px solid var(--alerta-borda); color: var(--alerta-texto); }
+.caixa.confirmacao { background: var(--cartao); border: 1px solid var(--alerta-borda); }
+.caixa.info { background: var(--info-fundo); border: 1px solid var(--info-borda); }
+.caixa.fgts { background: var(--ok-fundo); border: 1px solid var(--ok-borda); }
+.fgts-topo { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.fgts-topo small { display: block; color: var(--suave); }
+.fgts-valor { font-size: 1.3rem; font-weight: 700; color: var(--ok); }
+.caixa details { margin-top: 8px; }
+
+.badge { display: inline-block; font-size: .7rem; font-weight: 700; text-transform: uppercase; padding: 1px 7px; border-radius: 10px; background: var(--alerta-borda); color: var(--tag-texto); vertical-align: middle; }
+.badge.pago { background: var(--badge-ok); color: var(--ok); }
+.badge.naopago { background: var(--badge-erro); color: var(--erro); }
+
+.tabela-rolagem { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; }
+.tabela-verbas th, .tabela-verbas td, .tabela-mini th, .tabela-mini td { padding: 8px 10px; border-bottom: 1px solid var(--borda); text-align: left; }
+.tabela-verbas thead th { background: var(--primaria); color: var(--sobre-primaria); font-weight: 600; }
+.tabela-verbas tfoot td { font-weight: 700; background: var(--linha-total); }
+.tabela-verbas .liquido td { background: var(--primaria); color: var(--sobre-primaria); font-size: 1.05rem; }
+.tabela-mini { font-size: .85rem; margin-top: 6px; background: var(--cartao); }
+.num { text-align: right !important; white-space: nowrap; }
+.ref { color: var(--suave); white-space: nowrap; }
+.desc { color: var(--erro); }
+.liquido .desc, .liquido .num { color: var(--sobre-primaria); }
+
+.memoria-item { border: 1px solid var(--borda); border-radius: 6px; margin-bottom: 6px; background: var(--memoria-fundo); }
+.memoria-item.manual { border-left: 4px solid var(--alerta-borda); }
+.memoria-item summary { display: flex; justify-content: space-between; gap: 12px; padding: 8px 12px; cursor: pointer; font-weight: 600; }
+.memoria-item ol { margin: 0; padding: 0 16px 10px 36px; font-size: .88rem; color: var(--suave); }
+
+/* Recibo: oculto na tela, único conteúdo na impressão */
+.recibo { display: none; }
+
+
+/* Recibo exibido na tela (no chat a impressão é bloqueada). Folha sempre branca, como o papel. */
+.recibo-area { max-width: 960px; margin: 0 auto; padding-block: 0 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.recibo-area h2 { color: var(--primaria); margin: 0 0 4px; }
+.recibo-rolagem { overflow-x: auto; padding: 4px 0 16px; }
+.recibo.visivel { display: block; background: #ffffff; color: #000000; width: 760px; margin: 0 auto; padding: 48px 52px; box-shadow: 0 2px 14px rgba(0,0,0,.25); border-radius: 2px; font: 14px/1.45 Georgia, "Times New Roman", serif; }
+.recibo.visivel h1 { font-size: 17px; text-align: center; text-transform: uppercase; margin: 0 0 16px; letter-spacing: .03em; color: #000000; }
+.recibo.visivel table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+.recibo.visivel th, .recibo.visivel td { border: 1px solid #000000; padding: 5px 7px; text-align: left; vertical-align: top; color: #000000; background: transparent; }
+.recibo.visivel .rb-dados th { width: 18%; background: #eeeeee; }
+.recibo.visivel .rb-verbas thead th { background: #eeeeee; }
+.recibo.visivel .rb-verbas tfoot td { font-weight: 700; }
+.recibo.visivel .rb-liquido td { background: #dddddd; font-size: 15px; }
+.recibo.visivel .num { text-align: right !important; white-space: nowrap; }
+.recibo.visivel .rb-nota { font-size: 13px; }
+.recibo.visivel .rb-declaracao { text-align: justify; margin: 16px 0; }
+.recibo.visivel .rb-local { margin: 24px 0 48px; }
+.recibo.visivel .rb-assinaturas { display: flex; justify-content: space-between; gap: 40px; }
+.recibo.visivel .rb-assinaturas div { flex: 1; text-align: center; }
+.recibo.visivel .rb-assinaturas span { display: block; border-top: 1px solid #000000; margin-bottom: 4px; }
+.recibo.visivel .rb-assinaturas small { display: block; font-size: 11px; }
+.recibo.visivel .rb-rodape { margin-top: 36px; font-size: 10px; color: #555555; text-align: right; }
+.exemplo { background: var(--info-fundo); border: 1px dashed var(--primaria); border-radius: var(--raio); padding: 10px 14px; margin: 0 0 16px; font-size: .9rem; }
+
+</style>
+
+  <div class="app">
+    <header class="topo">
+      <h1>Cálculo rescisório</h1>
+      <p>Vínculo não registrado — apenas o período efetivamente trabalhado</p>
+    </header>
+
+    <aside class="aviso-escopo">
+      <strong>Escopo do cálculo:</strong> saldo de salário, 13º, férias + 1/3, FGTS do período (opcional), faltas/DSR,
+      adicionais e descontos informados. <strong>Não inclui</strong> aviso prévio, multa de 40% do FGTS, INSS, IRRF,
+      férias em dobro nem atualização monetária.
+    </aside>
+
+    <p class="exemplo"><strong>Dados de exemplo preenchidos.</strong> Troque pelos dados reais e clique em Calcular rescisão.</p>
+    <form id="form-rescisao" novalidate>
+      <fieldset>
+        <legend>Empresa e empregado</legend>
+        <div class="grade">
+          <div class="campo largo">
+            <label for="empresa">Nome da empresa *</label>
+            <input id="empresa" value="Exemplo Comércio Ltda" type="text" maxlength="120" autocomplete="organization">
+            <span class="erro-campo"></span>
+          </div>
+          <div class="campo largo">
+            <label for="nome">Nome completo do empregado *</label>
+            <input id="nome" value="Maria Exemplo da Silva" type="text" maxlength="120" autocomplete="off">
+            <span class="erro-campo"></span>
+          </div>
+          <div class="campo">
+            <label for="cpf">CPF *</label>
+            <input id="cpf" value="529.982.247-25" type="text" inputmode="numeric" maxlength="14" placeholder="000.000.000-00" autocomplete="off">
+            <span class="erro-campo"></span>
+          </div>
+          <div class="campo">
+            <label for="cargo">Cargo <span class="opcional">(opcional)</span></label>
+            <input id="cargo" value="Auxiliar administrativo" type="text" maxlength="80">
+            <span class="erro-campo"></span>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Contrato</legend>
+        <div class="grade">
+          <div class="campo">
+            <label for="salario">Salário base (R$) *</label>
+            <input id="salario" value="3.000,00" type="text" inputmode="decimal" placeholder="0,00" data-moeda>
+            <span class="erro-campo"></span>
+          </div>
+          <div class="campo">
+            <label for="admissao">Data de admissão *</label>
+            <input id="admissao" type="date" value="2026-03-10">
+            <span class="erro-campo"></span>
+          </div>
+          <div class="campo">
+            <label for="desligamento">Data de desligamento *</label>
+            <input id="desligamento" type="date" value="2026-10-20">
+            <span class="erro-campo"></span>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset id="fs-pendencias" class="pendencias" hidden>
+        <legend>⚠ Confirmações manuais obrigatórias</legend>
+        <p class="ajuda">Estes pontos dependem de informação que o sistema não tem. Responda cada um antes de calcular.</p>
+        <div id="pendencias-lista"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Faltas</legend>
+        <div class="grade">
+          <div class="campo">
+            <label for="faltas">Faltas injustificadas (dias)</label>
+            <input id="faltas" type="number" min="0" step="1" value="0">
+            <span class="erro-campo"></span>
+          </div>
+          <div class="campo">
+            <label class="check"><input id="incluirDsr" type="checkbox"> Descontar reflexo no DSR</label>
+            <label for="dsrDias" class="sub">DSR a descontar (semanas com falta)</label>
+            <input id="dsrDias" type="number" min="1" step="1" value="1" disabled>
+            <span class="erro-campo"></span>
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Adicionais</legend>
+        <div id="lista-adicionais" class="lista-itens"></div>
+        <button type="button" class="btn-secundario" data-adicionar="adicionais">+ Adicionar provento</button>
+      </fieldset>
+
+      <fieldset>
+        <legend>Descontos</legend>
+        <div id="lista-descontos" class="lista-itens"></div>
+        <button type="button" class="btn-secundario" data-adicionar="descontos">+ Adicionar desconto</button>
+      </fieldset>
+
+      <fieldset>
+        <legend>FGTS</legend>
+        <label class="check"><input id="calcularFgts" type="checkbox" checked> Calcular FGTS do período (8%) — exibido como verba a depositar</label>
+      </fieldset>
+
+      <div id="erros-resumo" class="erros-resumo" role="alert" hidden></div>
+
+      <div class="acoes">
+        <button type="submit" class="btn-primario">Calcular rescisão</button>
+        <button type="button" id="btn-limpar" class="btn-secundario">Limpar</button>
+      </div>
+    </form>
+
+    <section id="resultado" class="resultado" hidden aria-live="polite">
+      <div id="aviso-desatualizado" class="aviso-desatualizado" hidden>
+        Os dados foram alterados depois do cálculo. Clique em <strong>Calcular rescisão</strong> novamente para atualizar.
+      </div>
+
+      <h2>Demonstrativo de rescisão</h2>
+      <div id="res-dados" class="res-dados"></div>
+      <div id="res-alertas"></div>
+      <div id="res-confirmacoes"></div>
+      <div class="tabela-rolagem"><table id="res-tabela" class="tabela-verbas"></table></div>
+      <div id="res-fgts"></div>
+
+      <h3>Memória de cálculo</h3>
+      <div id="res-memoria" class="memoria"></div>
+      <div id="res-observacoes"></div>
+
+      <div class="acoes">
+        <button type="button" id="btn-recibo" class="btn-primario">Visualizar recibo de quitação</button>
+      </div>
+      <p class="ajuda">Aqui no chat o navegador não permite imprimir, então o recibo aparece logo abaixo para conferência. Para salvar o PDF, abra o arquivo calculo-rescisorio.html no seu navegador.</p>
+    </section>
+  </div>
+
+  <section id="recibo-area" class="recibo-area" hidden><h2>Recibo de rescisão e quitação</h2><p class="ajuda">Prévia exata do documento que sai em PDF no arquivo calculo-rescisorio.html.</p><div class="recibo-rolagem"><section id="recibo" class="recibo"></section></div></section>
+
+  <script>
+/**
+ * ============================================================================
+ *  calc.js — Núcleo de cálculo rescisório para vínculo NÃO registrado
+ * ============================================================================
+ *  Funções puras, sem acesso a DOM. Disponível como `window.RescisaoCalc` no
+ *  navegador e via `require('./calc.js')` no Node (usado pelos testes).
+ *
+ *  Convenções adotadas:
+ *   - Datas tratadas em UTC (meia-noite) para evitar desvios de fuso horário.
+ *   - Valores arredondados a 2 casas por verba (meio para cima).
+ *   - Mês comercial de 30 dias para saldo de salário, faltas e DSR.
+ *     Mês trabalhado integralmente (inclusive fevereiro e meses de 31 dias)
+ *     conta como 30 dias.
+ *   - Avos de 13º: mês civil com 15 dias ou mais trabalhados
+ *     (Lei 4.090/62, art. 1º, §2º).
+ *   - Avos de férias: fração superior a 14 dias dentro do período aquisitivo
+ *     (CLT, art. 146, parágrafo único). Férias sempre com 1/3 (CF, art. 7º, XVII).
+ *   - FGTS: 8% (Lei 8.036/90, art. 15). Férias indenizadas + 1/3 ficam fora
+ *     da base (OJ 195 da SDI-1/TST). Valor histórico, sem atualização.
+ *   - Não calcula INSS nem IRRF (fora do escopo).
+ * ============================================================================
+ */
+(function (root, factory) {
+  'use strict';
+  if (typeof module === 'object' && module.exports) {
+    module.exports = factory();
+  } else {
+    root.RescisaoCalc = factory();
+  }
+}(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  const MS_DIA = 86400000;
+  const ALIQUOTA_FGTS = 0.08;
+  const MESES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+
+  /* ------------------------------------------------------------------------
+   * Utilitários numéricos e de formatação
+   * ---------------------------------------------------------------------- */
+
+  /** Arredonda para 2 casas decimais (meio para cima). */
+  function round2(v) {
+    return Math.round((v + Number.EPSILON) * 100) / 100;
+  }
+
+  /** Formata número no padrão brasileiro: 1518 -> "1.518,00". */
+  function formatarNumero(v) {
+    const n = round2(Number(v) || 0);
+    const partes = Math.abs(n).toFixed(2).split('.');
+    const inteiro = partes[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    return (n < 0 ? '-' : '') + inteiro + ',' + partes[1];
+  }
+
+  /** Formata moeda: 1518 -> "R$ 1.518,00". */
+  function formatarMoeda(v) {
+    const s = formatarNumero(v);
+    return s.charAt(0) === '-' ? '-R$ ' + s.slice(1) : 'R$ ' + s;
+  }
+
+  /**
+   * Converte texto monetário em número.
+   * Aceita "1.518,00", "1518,5", "1518.50", "R$ 1.518,00" ou number.
+   * "1.518" (sem vírgula, grupos de 3) é lido como milhar = 1518.
+   * Retorna NaN se o formato for inválido.
+   */
+  function parseValor(entrada) {
+    if (typeof entrada === 'number') return Number.isFinite(entrada) ? entrada : NaN;
+    if (typeof entrada !== 'string') return NaN;
+    let s = entrada.trim().replace(/^R\$\s*/i, '').replace(/\s/g, '');
+    if (!s) return NaN;
+    if (s.indexOf(',') !== -1) {
+      if (!/^-?(\d{1,3}(\.\d{3})+|\d+)(,\d+)?$/.test(s)) return NaN;
+      s = s.replace(/\./g, '').replace(',', '.');
+    } else if (/^-?\d{1,3}(\.\d{3})+$/.test(s)) {
+      s = s.replace(/\./g, '');
+    } else if (!/^-?\d+(\.\d+)?$/.test(s)) {
+      return NaN;
+    }
+    return Number(s);
+  }
+
+  /* ------------------------------------------------------------------------
+   * Datas (sempre em UTC)
+   * ---------------------------------------------------------------------- */
+
+  /** Converte "AAAA-MM-DD" em Date UTC; retorna null se inválida (ex.: 30/02). */
+  function parseDataISO(str) {
+    if (str instanceof Date) return Number.isNaN(str.getTime()) ? null : str;
+    if (typeof str !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(str)) return null;
+    const p = str.split('-').map(Number);
+    const d = new Date(Date.UTC(p[0], p[1] - 1, p[2]));
+    if (d.getUTCFullYear() !== p[0] || d.getUTCMonth() !== p[1] - 1 || d.getUTCDate() !== p[2]) return null;
+    if (p[0] < 1900 || p[0] > 2100) return null;
+    return d;
+  }
+
+  /** Formata Date UTC como dd/mm/aaaa. */
+  function formatarData(d) {
+    const dd = String(d.getUTCDate()).padStart(2, '0');
+    const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+    return dd + '/' + mm + '/' + d.getUTCFullYear();
+  }
+
+  function addDias(d, n) {
+    return new Date(d.getTime() + n * MS_DIA);
+  }
+
+  /** Soma meses preservando o dia; se o dia não existir, usa o último do mês. */
+  function addMeses(d, n) {
+    const ano = d.getUTCFullYear();
+    const mes = d.getUTCMonth() + n;
+    const ultimo = new Date(Date.UTC(ano, mes + 1, 0)).getUTCDate();
+    return new Date(Date.UTC(ano, mes, Math.min(d.getUTCDate(), ultimo)));
+  }
+
+  function ultimoDiaDoMes(ano, mes0) {
+    return new Date(Date.UTC(ano, mes0 + 1, 0)).getUTCDate();
+  }
+
+  /** Quantidade de dias entre duas datas, contando o primeiro e o último. */
+  function diasEntre(inicio, fim) {
+    return Math.round((fim.getTime() - inicio.getTime()) / MS_DIA) + 1;
+  }
+
+  /** Dias do vínculo [adm, desl] que caem dentro do mês civil (ano, mes0). */
+  function diasTrabalhadosNoMes(adm, desl, ano, mes0) {
+    const iniMes = new Date(Date.UTC(ano, mes0, 1));
+    const fimMes = new Date(Date.UTC(ano, mes0, ultimoDiaDoMes(ano, mes0)));
+    const ini = adm > iniMes ? adm : iniMes;
+    const fim = desl < fimMes ? desl : fimMes;
+    return fim >= ini ? diasEntre(ini, fim) : 0;
+  }
+
+  /**
+   * Dias a remunerar no mês pelo critério do mês comercial:
+   * mês integral = 30 dias; mês parcial = dias corridos (máximo 30).
+   */
+  function diasConsideradosNoMes(adm, desl, ano, mes0) {
+    const dias = diasTrabalhadosNoMes(adm, desl, ano, mes0);
+    const completo = dias > 0 && dias === ultimoDiaDoMes(ano, mes0);
+    return { dias: dias, completo: completo, considerados: completo ? 30 : Math.min(dias, 30) };
+  }
+
+  /* ------------------------------------------------------------------------
+   * Documento
+   * ---------------------------------------------------------------------- */
+
+  /** Valida CPF: formato 000.000.000-00 (ou 11 dígitos) e dígitos verificadores. */
+  function validarCPF(cpf) {
+    const bruto = String(cpf == null ? '' : cpf).trim();
+    if (!/^(\d{3}\.\d{3}\.\d{3}-\d{2}|\d{11})$/.test(bruto)) return false;
+    const d = bruto.replace(/\D/g, '');
+    if (/^(\d)\1{10}$/.test(d)) return false;
+    for (let t = 9; t < 11; t++) {
+      let soma = 0;
+      for (let i = 0; i < t; i++) soma += Number(d[i]) * (t + 1 - i);
+      const dv = ((soma * 10) % 11) % 10;
+      if (dv !== Number(d[t])) return false;
+    }
+    return true;
+  }
+
+  function formatarCPF(cpf) {
+    const d = String(cpf || '').replace(/\D/g, '');
+    if (d.length !== 11) return String(cpf || '');
+    return d.slice(0, 3) + '.' + d.slice(3, 6) + '.' + d.slice(6, 9) + '-' + d.slice(9);
+  }
+
+  /* ------------------------------------------------------------------------
+   * Cálculos por verba
+   * ---------------------------------------------------------------------- */
+
+  /**
+   * Saldo de salário: dias trabalhados no mês do desligamento.
+   * Fórmula: salário ÷ 30 × dias considerados.
+   */
+  function calcularSaldoSalario(salario, adm, desl) {
+    const ano = desl.getUTCFullYear();
+    const mes0 = desl.getUTCMonth();
+    const c = diasConsideradosNoMes(adm, desl, ano, mes0);
+    const iniMes = new Date(Date.UTC(ano, mes0, 1));
+    const ini = adm > iniMes ? adm : iniMes;
+    const valor = round2(salario / 30 * c.considerados);
+    const memoria = [
+      'Período no mês do desligamento: ' + formatarData(ini) + ' a ' + formatarData(desl) + ' = ' + c.dias + ' dia(s).'
+    ];
+    if (c.completo) memoria.push('Mês trabalhado integralmente: considerados 30 dias (mês comercial).');
+    memoria.push('Cálculo: ' + formatarMoeda(salario) + ' ÷ 30 × ' + c.considerados + ' = ' + formatarMoeda(valor) + '.');
+    return { dias: c.dias, considerados: c.considerados, completo: c.completo, valor: valor, memoria: memoria };
+  }
+
+  /**
+   * Avos de 13º de um ano civil: conta cada mês com 15 dias ou mais trabalhados.
+   * Retorna { avos, meses: [{ mes0, dias, conta }] } (apenas meses com dias > 0).
+   */
+  function calcularAvos13(adm, desl, ano) {
+    const meses = [];
+    let avos = 0;
+    for (let m = 0; m < 12; m++) {
+      const dias = diasTrabalhadosNoMes(adm, desl, ano, m);
+      if (dias === 0) continue;
+      const conta = dias >= 15;
+      if (conta) avos++;
+      meses.push({ mes0: m, dias: dias, conta: conta });
+    }
+    return { avos: avos, meses: meses };
+  }
+
+  function memoria13(salario, ano, a, valor) {
+    const detalhe = a.meses.map(function (m) {
+      return MESES[m.mes0] + ': ' + m.dias + 'd ' + (m.conta ? '✓' : '✗');
+    }).join(' · ');
+    return [
+      'Meses de ' + ano + ' (✓ = 15 dias ou mais): ' + (detalhe || 'nenhum') + '.',
+      'Avos: ' + a.avos + '/12.',
+      'Cálculo: ' + formatarMoeda(salario) + ' ÷ 12 × ' + a.avos + ' = ' + formatarMoeda(valor) + '.'
+    ];
+  }
+
+  /**
+   * Divide o vínculo em períodos aquisitivos de 12 meses contados da admissão.
+   * Períodos completos trazem também o fim do período concessivo (+12 meses).
+   */
+  function periodosAquisitivos(adm, desl) {
+    const periodos = [];
+    for (let k = 0; k < 200; k++) {
+      const inicio = addMeses(adm, 12 * k);
+      if (inicio > desl) break;
+      const fimIntegral = addDias(addMeses(adm, 12 * (k + 1)), -1);
+      if (fimIntegral <= desl) {
+        periodos.push({
+          indice: k, inicio: inicio, fim: fimIntegral, completo: true,
+          fimConcessivo: addDias(addMeses(adm, 12 * (k + 2)), -1)
+        });
+      } else {
+        periodos.push({ indice: k, inicio: inicio, fim: desl, fimIntegral: fimIntegral, completo: false });
+        break;
+      }
+    }
+    return periodos;
+  }
+
+  /**
+   * Avos de férias proporcionais no período aquisitivo de índice k:
+   * meses completos desde o início do período + 1 avo se a fração final
+   * tiver 15 dias ou mais (superior a 14 dias).
+   */
+  function calcularAvosFerias(adm, k, desl) {
+    let m = 0;
+    while (m < 12 && addDias(addMeses(adm, 12 * k + m + 1), -1) <= desl) m++;
+    const inicioFracao = addMeses(adm, 12 * k + m);
+    const diasFracao = (m < 12 && desl >= inicioFracao) ? diasEntre(inicioFracao, desl) : 0;
+    const avos = Math.min(12, m + (diasFracao >= 15 ? 1 : 0));
+    return { avos: avos, mesesCompletos: m, diasFracao: diasFracao };
+  }
+
+  /* ------------------------------------------------------------------------
+   * Pendências de confirmação manual
+   * ---------------------------------------------------------------------- */
+
+  /**
+   * Identifica o que depende de confirmação do usuário:
+   *  - anosDecimo: anos anteriores ao desligamento com avos de 13º;
+   *  - periodosVencidos: períodos aquisitivos completos (férias vencidas).
+   * Aceita datas como "AAAA-MM-DD" ou Date. Retorna listas vazias se inválidas.
+   */
+  function analisarPendencias(admissao, desligamento) {
+    const adm = parseDataISO(admissao);
+    const desl = parseDataISO(desligamento);
+    const vazio = { anosDecimo: [], periodosVencidos: [] };
+    if (!adm || !desl || adm > desl) return vazio;
+    const anosDecimo = [];
+    for (let ano = adm.getUTCFullYear(); ano < desl.getUTCFullYear(); ano++) {
+      const a = calcularAvos13(adm, desl, ano);
+      if (a.avos > 0) anosDecimo.push({ ano: ano, avos: a.avos });
+    }
+    const periodosVencidos = periodosAquisitivos(adm, desl)
+      .filter(function (p) { return p.completo; })
+      .map(function (p) {
+        return { indice: p.indice, inicio: p.inicio, fim: p.fim, inicioFmt: formatarData(p.inicio), fimFmt: formatarData(p.fim) };
+      });
+    return { anosDecimo: anosDecimo, periodosVencidos: periodosVencidos };
+  }
+
+  /* ------------------------------------------------------------------------
+   * Validação
+   * ---------------------------------------------------------------------- */
+
+  function texto(v) { return typeof v === 'string' ? v.trim() : ''; }
+
+  function numeroOpcional(v) {
+    if (v === '' || v === null || v === undefined) return 0;
+    return Number(String(v).trim().replace(',', '.'));
+  }
+
+  /**
+   * Valida a entrada completa. Retorna lista de erros { campo, mensagem }
+   * (vazia se tudo estiver correto). Campos de itens usam a chave
+   * "adicionais-<i>-nome|valor" / "descontos-<i>-nome|valor".
+   */
+  function validarEntrada(input) {
+    const i = input || {};
+    const erros = [];
+    const add = function (campo, mensagem) { erros.push({ campo: campo, mensagem: mensagem }); };
+
+    if (texto(i.empresa).length < 2) add('empresa', 'Informe o nome da empresa.');
+
+    const nome = texto(i.nome);
+    if (!nome) add('nome', 'Informe o nome completo do empregado.');
+    else if (nome.split(/\s+/).length < 2) add('nome', 'Informe nome e sobrenome do empregado.');
+
+    if (!texto(i.cpf)) add('cpf', 'Informe o CPF do empregado.');
+    else if (!validarCPF(i.cpf)) add('cpf', 'CPF inválido. Use o formato 000.000.000-00 e confira os dígitos.');
+
+    const salarioVazio = i.salario === undefined || i.salario === null || (typeof i.salario === 'string' && !i.salario.trim());
+    const salario = parseValor(i.salario);
+    if (salarioVazio) add('salario', 'Informe o salário base.');
+    else if (Number.isNaN(salario)) add('salario', 'O salário base deve ser numérico (ex.: 1.518,00).');
+    else if (salario <= 0) add('salario', 'O salário base deve ser maior que zero.');
+
+    const adm = parseDataISO(i.admissao);
+    const desl = parseDataISO(i.desligamento);
+    if (!i.admissao) add('admissao', 'Informe a data de admissão.');
+    else if (!adm) add('admissao', 'Data de admissão inválida.');
+    if (!i.desligamento) add('desligamento', 'Informe a data de desligamento.');
+    else if (!desl) add('desligamento', 'Data de desligamento inválida.');
+
+    let diasVinculo = null;
+    if (adm && desl) {
+      if (adm > desl) {
+        add('admissao', 'A data de admissão não pode ser posterior à data de desligamento.');
+      } else {
+        diasVinculo = diasEntre(adm, desl);
+        const pend = analisarPendencias(adm, desl);
+        const dec = i.decimoAnteriorPago || {};
+        const fer = i.feriasVencidasPagas || {};
+        pend.anosDecimo.forEach(function (p) {
+          if (typeof dec[p.ano] !== 'boolean') add('decimo-' + p.ano, 'Confirme se o 13º salário de ' + p.ano + ' já foi pago.');
+        });
+        pend.periodosVencidos.forEach(function (p) {
+          if (typeof fer[p.indice] !== 'boolean') add('ferias-' + p.indice, 'Confirme se as férias do período ' + p.inicioFmt + ' a ' + p.fimFmt + ' já foram pagas.');
+        });
+      }
+    }
+
+    const faltas = numeroOpcional(i.faltas);
+    let faltasOk = false;
+    if (!Number.isInteger(faltas) || faltas < 0) add('faltas', 'Faltas deve ser um número inteiro de dias, igual ou maior que zero.');
+    else if (diasVinculo !== null && faltas > diasVinculo) add('faltas', 'As faltas (' + faltas + ') excedem os dias do vínculo (' + diasVinculo + ').');
+    else faltasOk = true;
+
+    if (i.incluirDsr) {
+      const dsr = numeroOpcional(i.dsrDias);
+      if (!Number.isInteger(dsr) || dsr < 1) add('dsrDias', 'Informe a quantidade de DSR a descontar (inteiro, mínimo 1).');
+      else if (faltasOk && faltas === 0) add('dsrDias', 'Não há faltas lançadas para refletir no DSR.');
+      else if (faltasOk && dsr > faltas) add('dsrDias', 'Os DSR descontados não podem superar o número de faltas (no máximo 1 DSR por semana com falta).');
+    }
+
+    ['adicionais', 'descontos'].forEach(function (tipo) {
+      (i[tipo] || []).forEach(function (it, idx) {
+        if (!texto(it && it.nome)) add(tipo + '-' + idx + '-nome', 'Informe a descrição do item.');
+        const v = parseValor(it && it.valor);
+        if (Number.isNaN(v)) add(tipo + '-' + idx + '-valor', 'Informe um valor numérico.');
+        else if (v <= 0) add(tipo + '-' + idx + '-valor', 'O valor deve ser maior que zero.');
+      });
+    });
+
+    return erros;
+  }
+
+  function criarErroValidacao(erros) {
+    const e = new Error('Dados de entrada inválidos: ' + erros.map(function (x) { return x.mensagem; }).join(' '));
+    e.name = 'ValidacaoError';
+    e.erros = erros;
+    return e;
+  }
+
+  /* ------------------------------------------------------------------------
+   * FGTS
+   * ---------------------------------------------------------------------- */
+
+  /**
+   * FGTS do período: 8% sobre salários mês a mês (critério do mês comercial),
+   * todos os 13º do vínculo (pagos ou não), adicionais marcados como base,
+   * menos faltas/DSR descontados. Férias indenizadas não integram a base.
+   */
+  function calcularFgts(salario, adm, desl, decimos, adicionaisBase, descontoFaltas) {
+    const meses = [];
+    let ano = adm.getUTCFullYear();
+    let m = adm.getUTCMonth();
+    const anoF = desl.getUTCFullYear();
+    const mF = desl.getUTCMonth();
+    while (ano < anoF || (ano === anoF && m <= mF)) {
+      const c = diasConsideradosNoMes(adm, desl, ano, m);
+      meses.push({ ano: ano, mes0: m, competencia: String(m + 1).padStart(2, '0') + '/' + ano, dias: c.dias, considerados: c.considerados, valor: round2(salario / 30 * c.considerados) });
+      m++;
+      if (m > 11) { m = 0; ano++; }
+    }
+    const totalSalarios = round2(meses.reduce(function (s, x) { return s + x.valor; }, 0));
+    const total13 = round2(decimos.reduce(function (s, x) { return s + x.valor; }, 0));
+    const totalAdicionais = round2(adicionaisBase.reduce(function (s, x) { return s + x.valor; }, 0));
+    const base = Math.max(0, round2(totalSalarios + total13 + totalAdicionais - descontoFaltas));
+    const valor = round2(base * ALIQUOTA_FGTS);
+
+    const memoria = [
+      'Salários do período (' + meses.length + ' competência(s), mês comercial): ' + formatarMoeda(totalSalarios) + '.'
+    ];
+    decimos.forEach(function (d) {
+      memoria.push('13º salário ' + d.ano + ' (' + d.avos + '/12)' + (d.pagoAnteriormente ? ' — já pago, mas sem FGTS depositado' : '') + ': ' + formatarMoeda(d.valor) + '.');
+    });
+    if (totalAdicionais > 0) memoria.push('Adicionais que integram a base: ' + formatarMoeda(totalAdicionais) + '.');
+    if (descontoFaltas > 0) memoria.push('(-) Faltas e DSR descontados: ' + formatarMoeda(descontoFaltas) + '.');
+    memoria.push('Férias indenizadas e respectivo 1/3 não integram a base (OJ 195 da SDI-1/TST).');
+    memoria.push('Base de cálculo: ' + formatarMoeda(base) + ' × 8% = ' + formatarMoeda(valor) + '.');
+    memoria.push('Valor histórico, sem atualização monetária e sem multa rescisória.');
+
+    return { aliquota: ALIQUOTA_FGTS, base: base, valor: valor, totalSalarios: totalSalarios, total13: total13, totalAdicionais: totalAdicionais, descontoFaltas: descontoFaltas, meses: meses, memoria: memoria };
+  }
+
+  /* ------------------------------------------------------------------------
+   * Cálculo principal
+   * ---------------------------------------------------------------------- */
+
+  /**
+   * Calcula a rescisão completa. Lança erro `ValidacaoError` (com `.erros`)
+   * se a entrada for inválida.
+   *
+   * Entrada: { empresa, nome, cpf, cargo?, salario, admissao, desligamento,
+   *   decimoAnteriorPago: { [ano]: boolean }, feriasVencidasPagas: { [indice]: boolean },
+   *   faltas?, incluirDsr?, dsrDias?, calcularFgts?,
+   *   adicionais?: [{ nome, valor, integraFgts? }], descontos?: [{ nome, valor }] }
+   *
+   * Saída: { dados, verbas, totalProventos, totalDescontos, liquido,
+   *   fgts|null, confirmacoes, alertas, observacoes }
+   */
+  function calcularRescisao(input) {
+    const erros = validarEntrada(input);
+    if (erros.length) throw criarErroValidacao(erros);
+
+    const salario = parseValor(input.salario);
+    const adm = parseDataISO(input.admissao);
+    const desl = parseDataISO(input.desligamento);
+    const anoDesl = desl.getUTCFullYear();
+    const dec = input.decimoAnteriorPago || {};
+    const fer = input.feriasVencidasPagas || {};
+
+    const verbas = [];
+    const alertas = [];
+    const confirmacoes = [];
+    const observacoes = [];
+    const decimosFgts = [];
+    const provento = function (v) { v.tipo = 'provento'; verbas.push(v); };
+    const desconto = function (v) { v.tipo = 'desconto'; verbas.push(v); };
+
+    // 1) Saldo de salário
+    const saldo = calcularSaldoSalario(salario, adm, desl);
+    provento({ codigo: 'saldo', descricao: 'Saldo de salário', referencia: saldo.considerados + ' dia(s)', valor: saldo.valor, memoria: saldo.memoria });
+
+    // 2) 13º proporcional do ano do desligamento
+    const a13 = calcularAvos13(adm, desl, anoDesl);
+    const v13 = round2(salario / 12 * a13.avos);
+    decimosFgts.push({ ano: anoDesl, avos: a13.avos, valor: v13, pagoAnteriormente: false });
+    if (v13 > 0) {
+      provento({ codigo: 'decimo-prop', descricao: '13º salário proporcional ' + anoDesl, referencia: a13.avos + '/12', valor: v13, memoria: memoria13(salario, anoDesl, a13, v13) });
+    } else {
+      observacoes.push('13º proporcional de ' + anoDesl + ': 0/12 — nenhum mês com 15 dias ou mais trabalhados.');
+    }
+
+    // 3) 13º de anos anteriores (confirmação manual)
+    for (let ano = adm.getUTCFullYear(); ano < anoDesl; ano++) {
+      const a = calcularAvos13(adm, desl, ano);
+      if (a.avos === 0) continue;
+      const valor = round2(salario / 12 * a.avos);
+      const pago = dec[ano] === true;
+      decimosFgts.push({ ano: ano, avos: a.avos, valor: valor, pagoAnteriormente: pago });
+      confirmacoes.push({ chave: 'decimo-' + ano, descricao: '13º salário de ' + ano + ' (' + a.avos + '/12)', pago: pago, efeito: pago ? 'Informado como já pago — não incluído na rescisão.' : 'Informado como não pago — incluído na rescisão.' });
+      if (!pago) {
+        provento({ codigo: 'decimo-' + ano, descricao: '13º salário de ' + ano, referencia: a.avos + '/12', valor: valor, confirmacaoManual: true, memoria: memoria13(salario, ano, a, valor).concat(['Incluído porque foi confirmado como NÃO pago.']) });
+      }
+    }
+
+    // 4) Férias vencidas (confirmação manual) e proporcionais
+    periodosAquisitivos(adm, desl).forEach(function (p) {
+      const per = formatarData(p.inicio) + ' a ' + formatarData(p.fim);
+      if (p.completo) {
+        const pago = fer[p.indice] === true;
+        confirmacoes.push({ chave: 'ferias-' + p.indice, descricao: 'Férias do período aquisitivo ' + per, pago: pago, efeito: pago ? 'Informadas como já pagas — não incluídas na rescisão.' : 'Informadas como não pagas — incluídas como férias vencidas.' });
+        if (pago) return;
+        if (desl > p.fimConcessivo) {
+          alertas.push('Período aquisitivo ' + per + ': o período concessivo terminou em ' + formatarData(p.fimConcessivo) + ' sem concessão das férias. Avalie o pagamento em dobro (CLT, art. 137) — não calculado automaticamente.');
+        }
+        const vf = round2(salario);
+        const vt = round2(salario / 3);
+        provento({ codigo: 'ferias-venc-' + p.indice, descricao: 'Férias vencidas (' + per + ')', referencia: '12/12', valor: vf, confirmacaoManual: true,
+          memoria: ['Período aquisitivo completo: ' + per + '.', 'Cálculo: salário integral = ' + formatarMoeda(vf) + '.', 'Incluídas porque foram confirmadas como NÃO pagas.'] });
+        provento({ codigo: 'ferias-venc-terco-' + p.indice, descricao: '1/3 constitucional s/ férias vencidas (' + per + ')', referencia: '1/3', valor: vt, confirmacaoManual: true,
+          memoria: ['Cálculo: ' + formatarMoeda(salario) + ' ÷ 3 = ' + formatarMoeda(vt) + ' (CF, art. 7º, XVII).'] });
+      } else {
+        const a = calcularAvosFerias(adm, p.indice, desl);
+        const vf = round2(salario / 12 * a.avos);
+        const vt = round2(salario / 12 * a.avos / 3);
+        if (a.avos === 0) {
+          observacoes.push('Férias proporcionais (' + per + '): 0/12 — período em curso sem fração de 15 dias ou mais.');
+          return;
+        }
+        provento({ codigo: 'ferias-prop', descricao: 'Férias proporcionais', referencia: a.avos + '/12', valor: vf,
+          memoria: [
+            'Período aquisitivo em curso: ' + formatarData(p.inicio) + ' a ' + formatarData(desl) + ' (fim integral seria ' + formatarData(p.fimIntegral) + ').',
+            'Meses completos: ' + a.mesesCompletos + '; fração final: ' + a.diasFracao + ' dia(s) ' + (a.diasFracao >= 15 ? '(≥ 15, conta 1 avo)' : '(< 15, não conta)') + '.',
+            'Avos: ' + a.avos + '/12.',
+            'Cálculo: ' + formatarMoeda(salario) + ' ÷ 12 × ' + a.avos + ' = ' + formatarMoeda(vf) + '.'
+          ] });
+        provento({ codigo: 'ferias-prop-terco', descricao: '1/3 constitucional s/ férias proporcionais', referencia: '1/3', valor: vt,
+          memoria: ['Cálculo: ' + formatarMoeda(salario / 12 * a.avos) + ' ÷ 3 = ' + formatarMoeda(vt) + ' (CF, art. 7º, XVII).'] });
+      }
+    });
+
+    // 5) Adicionais
+    const adicionaisBaseFgts = [];
+    (input.adicionais || []).forEach(function (it, idx) {
+      const valor = round2(parseValor(it.valor));
+      const integra = it.integraFgts !== false;
+      if (integra) adicionaisBaseFgts.push({ nome: it.nome, valor: valor });
+      provento({ codigo: 'adicional-' + idx, descricao: texto(it.nome), referencia: 'Adicional', valor: valor,
+        memoria: ['Valor informado pelo usuário: ' + formatarMoeda(valor) + '.', integra ? 'Marcado como integrante da base do FGTS.' : 'Não integra a base do FGTS.'] });
+    });
+
+    // 6) Faltas e DSR
+    const salarioDia = salario / 30;
+    const faltas = numeroOpcional(input.faltas);
+    let descontoFaltas = 0;
+    if (faltas > 0) {
+      const vFal = round2(salarioDia * faltas);
+      descontoFaltas += vFal;
+      desconto({ codigo: 'faltas', descricao: 'Faltas injustificadas', referencia: faltas + ' dia(s)', valor: vFal,
+        memoria: ['Cálculo: ' + formatarMoeda(salario) + ' ÷ 30 × ' + faltas + ' = ' + formatarMoeda(vFal) + '.'] });
+      if (input.incluirDsr) {
+        const dsr = numeroOpcional(input.dsrDias);
+        const vDsr = round2(salarioDia * dsr);
+        descontoFaltas += vDsr;
+        desconto({ codigo: 'dsr', descricao: 'DSR s/ faltas', referencia: dsr + ' dia(s)', valor: vDsr,
+          memoria: ['Perda do repouso semanal remunerado nas semanas com falta injustificada (Lei 605/49, art. 6º).', 'DSR informados: ' + dsr + '.', 'Cálculo: ' + formatarMoeda(salario) + ' ÷ 30 × ' + dsr + ' = ' + formatarMoeda(vDsr) + '.'] });
+      }
+      alertas.push('As faltas foram descontadas em valor. O eventual reflexo delas nos avos de 13º e na proporção das férias (CLT, art. 130) não é aplicado automaticamente — confira.');
+    }
+    descontoFaltas = round2(descontoFaltas);
+
+    // 7) Descontos adicionais
+    (input.descontos || []).forEach(function (it, idx) {
+      const valor = round2(parseValor(it.valor));
+      desconto({ codigo: 'desconto-' + idx, descricao: texto(it.nome), referencia: 'Desconto', valor: valor,
+        memoria: ['Valor informado pelo usuário: ' + formatarMoeda(valor) + '.'] });
+    });
+
+    // Totais
+    const totalProventos = round2(verbas.filter(function (v) { return v.tipo === 'provento'; }).reduce(function (s, v) { return s + v.valor; }, 0));
+    const totalDescontos = round2(verbas.filter(function (v) { return v.tipo === 'desconto'; }).reduce(function (s, v) { return s + v.valor; }, 0));
+    const liquido = round2(totalProventos - totalDescontos);
+    if (liquido < 0) alertas.push('O valor líquido ficou negativo: os descontos superam os proventos. Revise os descontos lançados.');
+
+    // 8) FGTS (opcional)
+    let fgts = null;
+    if (input.calcularFgts) {
+      fgts = calcularFgts(salario, adm, desl, decimosFgts, adicionaisBaseFgts, descontoFaltas);
+      if (confirmacoes.some(function (c) { return c.chave.indexOf('ferias-') === 0 && c.pago; })) {
+        alertas.push('Há férias informadas como já pagas. Se foram gozadas, o 1/3 pago integra a base do FGTS e não foi incluído automaticamente — confira.');
+      }
+    }
+
+    return {
+      dados: {
+        empresa: texto(input.empresa),
+        nome: texto(input.nome),
+        cpf: formatarCPF(input.cpf),
+        cargo: texto(input.cargo),
+        salario: salario,
+        admissao: formatarData(adm),
+        desligamento: formatarData(desl),
+        diasVinculo: diasEntre(adm, desl)
+      },
+      verbas: verbas,
+      totalProventos: totalProventos,
+      totalDescontos: totalDescontos,
+      liquido: liquido,
+      fgts: fgts,
+      confirmacoes: confirmacoes,
+      alertas: alertas,
+      observacoes: observacoes
+    };
+  }
+
+  return {
+    calcularRescisao: calcularRescisao,
+    validarEntrada: validarEntrada,
+    analisarPendencias: analisarPendencias,
+    calcularSaldoSalario: calcularSaldoSalario,
+    calcularAvos13: calcularAvos13,
+    calcularAvosFerias: calcularAvosFerias,
+    periodosAquisitivos: periodosAquisitivos,
+    calcularFgts: calcularFgts,
+    validarCPF: validarCPF,
+    formatarCPF: formatarCPF,
+    parseValor: parseValor,
+    parseDataISO: parseDataISO,
+    formatarData: formatarData,
+    formatarMoeda: formatarMoeda,
+    formatarNumero: formatarNumero,
+    round2: round2
+  };
+}));
+
+</script>
+  <script>
+/**
+ * ============================================================================
+ *  script.js — Camada de interface do cálculo rescisório
+ * ============================================================================
+ *  Responsável por: máscaras de entrada, perguntas de confirmação manual,
+ *  itens dinâmicos (adicionais/descontos), exibição de erros, renderização do
+ *  demonstrativo + memória de cálculo e geração do recibo em PDF.
+ *  Toda regra de cálculo fica em calc.js (window.RescisaoCalc).
+ *
+ *  PDF: gerado pela função de impressão do navegador (window.print) com uma
+ *  folha de estilo própria para o recibo — sem bibliotecas externas e
+ *  funcionando offline. O usuário escolhe "Salvar como PDF" no diálogo.
+ * ============================================================================
+ */
+(function () {
+  'use strict';
+
+  const C = window.RescisaoCalc;
+  const $ = function (sel, ctx) { return (ctx || document).querySelector(sel); };
+  const $$ = function (sel, ctx) { return Array.prototype.slice.call((ctx || document).querySelectorAll(sel)); };
+  const form = $('#form-rescisao');
+  const respostas = {};          // respostas das confirmações manuais: { 'decimo-2025': 'sim' | 'nao' }
+  let ultimoResultado = null;
+  let inicial = true;
+
+  if (!C) {
+    document.body.insertAdjacentHTML('afterbegin', '<p class="erro-fatal">Falha ao carregar o motor de cálculo. Recarregue a página.</p>');
+    return;
+  }
+
+  /** Escapa texto para inserção segura em HTML. */
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  const moeda = C.formatarMoeda;
+
+  /* ---------------- Máscaras ---------------- */
+
+  /** Aplica máscara 000.000.000-00 enquanto o usuário digita. */
+  function mascararCPF(v) {
+    const d = v.replace(/\D/g, '').slice(0, 11);
+    if (d.length > 9) return d.slice(0, 3) + '.' + d.slice(3, 6) + '.' + d.slice(6, 9) + '-' + d.slice(9);
+    if (d.length > 6) return d.slice(0, 3) + '.' + d.slice(3, 6) + '.' + d.slice(6);
+    if (d.length > 3) return d.slice(0, 3) + '.' + d.slice(3);
+    return d;
+  }
+  $('#cpf').addEventListener('input', function (e) { e.target.value = mascararCPF(e.target.value); });
+
+  /** Ao sair de um campo monetário válido, formata como 1.518,00. */
+  form.addEventListener('focusout', function (e) {
+    const el = e.target;
+    if (!el.matches || !el.matches('[data-moeda]') || !el.value.trim()) return;
+    const v = C.parseValor(el.value);
+    if (!Number.isNaN(v)) el.value = C.formatarNumero(v);
+  });
+
+  $('#incluirDsr').addEventListener('change', function (e) { $('#dsrDias').disabled = !e.target.checked; });
+
+  /* ---------------- Confirmações manuais ---------------- */
+
+  /** Monta as perguntas de 13º anterior e férias vencidas conforme as datas. */
+  function renderizarPendencias() {
+    const pend = C.analisarPendencias($('#admissao').value, $('#desligamento').value);
+    const itens = pend.anosDecimo.map(function (p) {
+      return { chave: 'decimo-' + p.ano, pergunta: 'O 13º salário de ' + p.ano + ' (' + p.avos + '/12) já foi pago?', nao: 'Não — incluir na rescisão' };
+    }).concat(pend.periodosVencidos.map(function (p) {
+      return { chave: 'ferias-' + p.indice, pergunta: 'As férias vencidas do período aquisitivo ' + p.inicioFmt + ' a ' + p.fimFmt + ' já foram pagas?', nao: 'Não — incluir férias vencidas + 1/3' };
+    }));
+
+    $('#fs-pendencias').hidden = itens.length === 0;
+    $('#pendencias-lista').innerHTML = itens.map(function (it) {
+      const r = respostas[it.chave];
+      return '<div class="pendencia" data-campo="' + it.chave + '">' +
+        '<span class="tag">Confirmação manual</span>' +
+        '<p class="pergunta">' + esc(it.pergunta) + '</p>' +
+        '<div class="radios">' +
+          '<label><input type="radio" name="' + it.chave + '" value="sim"' + (r === 'sim' ? ' checked' : '') + '> Sim, já foi pago</label>' +
+          '<label><input type="radio" name="' + it.chave + '" value="nao"' + (r === 'nao' ? ' checked' : '') + '> ' + esc(it.nao) + '</label>' +
+        '</div><span class="erro-campo"></span></div>';
+    }).join('');
+  }
+
+  ['#admissao', '#desligamento'].forEach(function (s) {
+    $(s).addEventListener('change', renderizarPendencias);
+    $(s).addEventListener('input', renderizarPendencias);
+  });
+  $('#pendencias-lista').addEventListener('change', function (e) {
+    if (e.target.type === 'radio') respostas[e.target.name] = e.target.value;
+  });
+
+  /* ---------------- Itens dinâmicos ---------------- */
+
+  /** Adiciona uma linha de provento ou desconto adicional. */
+  function adicionarItem(tipo) {
+    const row = document.createElement('div');
+    row.className = 'item-linha';
+    row.innerHTML =
+      '<div class="campo"><label>Descrição<input type="text" class="item-nome" maxlength="80" placeholder="' + (tipo === 'adicionais' ? 'Ex.: Comissão' : 'Ex.: Adiantamento') + '"></label><span class="erro-campo"></span></div>' +
+      '<div class="campo campo-valor"><label>Valor (R$)<input type="text" class="item-valor" inputmode="decimal" placeholder="0,00" data-moeda></label><span class="erro-campo"></span></div>' +
+      (tipo === 'adicionais' ? '<label class="check item-check"><input type="checkbox" class="item-fgts" checked> Integra base do FGTS</label>' : '') +
+      '<button type="button" class="btn-remover" aria-label="Remover item" title="Remover">×</button>';
+    $('#lista-' + tipo).appendChild(row);
+    $('.item-nome', row).focus();
+  }
+
+  $$('[data-adicionar]').forEach(function (b) {
+    b.addEventListener('click', function () { adicionarItem(b.getAttribute('data-adicionar')); marcarDesatualizado(); });
+  });
+  form.addEventListener('click', function (e) {
+    if (e.target.classList.contains('btn-remover')) { e.target.closest('.item-linha').remove(); marcarDesatualizado(); }
+  });
+
+  function lerItens(tipo) {
+    return $$('#lista-' + tipo + ' .item-linha').map(function (row) {
+      const it = { nome: $('.item-nome', row).value, valor: $('.item-valor', row).value };
+      const chk = $('.item-fgts', row);
+      if (chk) it.integraFgts = chk.checked;
+      return it;
+    });
+  }
+
+  /* ---------------- Coleta e erros ---------------- */
+
+  /** Lê todos os campos do formulário no formato esperado por calcularRescisao. */
+  function coletarEntrada() {
+    const decimo = {}, ferias = {};
+    $$('.pendencia').forEach(function (p) {
+      const chave = p.getAttribute('data-campo');
+      const marcado = $('input:checked', p);
+      if (!marcado) return;
+      const pago = marcado.value === 'sim';
+      if (chave.indexOf('decimo-') === 0) decimo[Number(chave.slice(7))] = pago;
+      else ferias[Number(chave.slice(7))] = pago;
+    });
+    return {
+      empresa: $('#empresa').value, nome: $('#nome').value, cpf: $('#cpf').value, cargo: $('#cargo').value,
+      salario: $('#salario').value, admissao: $('#admissao').value, desligamento: $('#desligamento').value,
+      decimoAnteriorPago: decimo, feriasVencidasPagas: ferias,
+      faltas: $('#faltas').value, incluirDsr: $('#incluirDsr').checked, dsrDias: $('#dsrDias').value,
+      calcularFgts: $('#calcularFgts').checked,
+      adicionais: lerItens('adicionais'), descontos: lerItens('descontos')
+    };
+  }
+
+  /** Encontra o contêiner .campo correspondente à chave de erro. */
+  function localizarCampo(campo) {
+    const m = campo.match(/^(adicionais|descontos)-(\d+)-(nome|valor)$/);
+    if (m) {
+      const row = $$('#lista-' + m[1] + ' .item-linha')[Number(m[2])];
+      return row ? $('.item-' + m[3], row).closest('.campo') : null;
+    }
+    const pend = document.querySelector('.pendencia[data-campo="' + campo + '"]');
+    if (pend) return pend;
+    const el = document.getElementById(campo);
+    return el ? el.closest('.campo') : null;
+  }
+
+  function limparErros() {
+    $$('.tem-erro').forEach(function (el) { el.classList.remove('tem-erro'); });
+    $$('.erro-campo').forEach(function (el) { el.textContent = ''; });
+    $('#erros-resumo').hidden = true;
+    $('#erros-resumo').innerHTML = '';
+  }
+
+  function mostrarErros(erros) {
+    let primeiro = null;
+    erros.forEach(function (e) {
+      const alvo = localizarCampo(e.campo);
+      if (!alvo) return;
+      alvo.classList.add('tem-erro');
+      const span = $('.erro-campo', alvo);
+      if (span && !span.textContent) span.textContent = e.mensagem;
+      if (!primeiro) primeiro = alvo;
+    });
+    const resumo = $('#erros-resumo');
+    resumo.innerHTML = '<strong>Corrija ' + (erros.length === 1 ? 'o ponto abaixo' : 'os ' + erros.length + ' pontos abaixo') + ' antes de calcular:</strong><ul>' +
+      erros.map(function (e) { return '<li>' + esc(e.mensagem) + '</li>'; }).join('') + '</ul>';
+    resumo.hidden = false;
+    if (primeiro) {
+      primeiro.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const input = $('input', primeiro);
+      if (input) input.focus({ preventScroll: true });
+    }
+  }
+
+  /* ---------------- Resultado ---------------- */
+
+  function marcarDesatualizado() {
+    if (!ultimoResultado) return;
+    $('#aviso-desatualizado').hidden = false;
+    $('#btn-recibo').disabled = true;
+    $('#recibo-area').hidden = true;
+  }
+  form.addEventListener('input', marcarDesatualizado);
+  form.addEventListener('change', marcarDesatualizado);
+
+  function linhaVerba(v) {
+    const badge = v.confirmacaoManual ? ' <span class="badge">confirmação manual</span>' : '';
+    return '<tr><td>' + esc(v.descricao) + badge + '</td><td class="ref">' + esc(v.referencia) + '</td>' +
+      '<td class="num">' + (v.tipo === 'provento' ? moeda(v.valor) : '') + '</td>' +
+      '<td class="num desc">' + (v.tipo === 'desconto' ? moeda(v.valor) : '') + '</td></tr>';
+  }
+
+  /** Renderiza demonstrativo, alertas, confirmações, FGTS e memória de cálculo. */
+  function renderizarResultado(r) {
+    const d = r.dados;
+    $('#res-dados').innerHTML =
+      '<div><span>Empresa</span>' + esc(d.empresa) + '</div>' +
+      '<div><span>Empregado</span>' + esc(d.nome) + '</div>' +
+      '<div><span>CPF</span>' + esc(d.cpf) + '</div>' +
+      (d.cargo ? '<div><span>Cargo</span>' + esc(d.cargo) + '</div>' : '') +
+      '<div><span>Salário base</span>' + moeda(d.salario) + '</div>' +
+      '<div><span>Período</span>' + d.admissao + ' a ' + d.desligamento + ' (' + d.diasVinculo + ' dias)</div>';
+
+    $('#res-alertas').innerHTML = r.alertas.length
+      ? '<div class="caixa alerta"><strong>⚠ Pontos para conferência</strong><ul>' + r.alertas.map(function (a) { return '<li>' + esc(a) + '</li>'; }).join('') + '</ul></div>'
+      : '';
+
+    $('#res-confirmacoes').innerHTML = r.confirmacoes.length
+      ? '<div class="caixa confirmacao"><strong>Confirmações manuais aplicadas</strong><ul>' + r.confirmacoes.map(function (c) {
+          return '<li><span class="badge ' + (c.pago ? 'pago' : 'naopago') + '">' + (c.pago ? 'pago' : 'não pago') + '</span> ' + esc(c.descricao) + ' — ' + esc(c.efeito) + '</li>';
+        }).join('') + '</ul></div>'
+      : '';
+
+    const proventos = r.verbas.filter(function (v) { return v.tipo === 'provento'; });
+    const descontos = r.verbas.filter(function (v) { return v.tipo === 'desconto'; });
+    $('#res-tabela').innerHTML =
+      '<thead><tr><th>Verba</th><th>Ref.</th><th class="num">Proventos</th><th class="num">Descontos</th></tr></thead>' +
+      '<tbody>' + proventos.concat(descontos).map(linhaVerba).join('') + '</tbody>' +
+      '<tfoot><tr><td colspan="2">Totais</td><td class="num">' + moeda(r.totalProventos) + '</td><td class="num desc">' + moeda(r.totalDescontos) + '</td></tr>' +
+      '<tr class="liquido"><td colspan="2">Valor líquido a pagar</td><td colspan="2" class="num">' + moeda(r.liquido) + '</td></tr></tfoot>';
+
+    if (r.fgts) {
+      $('#res-fgts').innerHTML =
+        '<div class="caixa fgts"><div class="fgts-topo"><div><strong>FGTS do período — verba a depositar</strong>' +
+        '<small>Não compõe o valor líquido acima.</small></div><div class="fgts-valor">' + moeda(r.fgts.valor) + '</div></div>' +
+        '<ul>' + r.fgts.memoria.map(function (m) { return '<li>' + esc(m) + '</li>'; }).join('') + '</ul>' +
+        '<details><summary>Salários mês a mês (' + r.fgts.meses.length + ' competências)</summary><table class="tabela-mini"><thead><tr><th>Competência</th><th>Dias</th><th class="num">Salário</th><th class="num">FGTS 8%</th></tr></thead><tbody>' +
+        r.fgts.meses.map(function (m) {
+          return '<tr><td>' + m.competencia + '</td><td>' + m.considerados + (m.considerados !== m.dias ? ' (' + m.dias + ' corridos)' : '') + '</td><td class="num">' + moeda(m.valor) + '</td><td class="num">' + moeda(m.valor * 0.08) + '</td></tr>';
+        }).join('') + '</tbody></table></details></div>';
+    } else {
+      $('#res-fgts').innerHTML = '';
+    }
+
+    $('#res-memoria').innerHTML = r.verbas.map(function (v) {
+      return '<details class="memoria-item' + (v.confirmacaoManual ? ' manual' : '') + '"><summary><span>' + esc(v.descricao) + '</span><span class="' + (v.tipo === 'desconto' ? 'desc' : '') + '">' + (v.tipo === 'desconto' ? '− ' : '') + moeda(v.valor) + '</span></summary><ol>' +
+        v.memoria.map(function (m) { return '<li>' + esc(m) + '</li>'; }).join('') + '</ol></details>';
+    }).join('');
+
+    $('#res-observacoes').innerHTML = r.observacoes.length
+      ? '<div class="caixa info"><strong>Observações</strong><ul>' + r.observacoes.map(function (o) { return '<li>' + esc(o) + '</li>'; }).join('') + '</ul></div>'
+      : '';
+
+    $('#aviso-desatualizado').hidden = true;
+    $('#btn-recibo').disabled = false;
+    $('#resultado').hidden = false;
+    if (!inicial) $('#resultado').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    limparErros();
+    try {
+      ultimoResultado = C.calcularRescisao(coletarEntrada());
+      renderizarResultado(ultimoResultado);
+    } catch (err) {
+      if (err && err.name === 'ValidacaoError') {
+        mostrarErros(err.erros);
+      } else {
+        console.error(err);
+        $('#erros-resumo').innerHTML = '<strong>Erro inesperado no cálculo.</strong> Revise os dados e tente novamente. Detalhe técnico: ' + esc(err && err.message);
+        $('#erros-resumo').hidden = false;
+      }
+    }
+  });
+
+  $('#btn-limpar').addEventListener('click', function () {
+    form.reset();
+    $('#lista-adicionais').innerHTML = '';
+    $('#lista-descontos').innerHTML = '';
+    $('#dsrDias').disabled = true;
+    Object.keys(respostas).forEach(function (k) { delete respostas[k]; });
+    renderizarPendencias();
+    limparErros();
+    ultimoResultado = null;
+    $('#resultado').hidden = true;
+    $('#recibo-area').hidden = true;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  /* ---------------- Recibo (PDF via impressão) ---------------- */
+
+  /** Monta o recibo de rescisão e quitação a partir do último resultado. */
+  function montarRecibo(r) {
+    const d = r.dados;
+    const linhas = r.verbas.map(function (v) {
+      return '<tr><td>' + esc(v.descricao) + '</td><td class="ref">' + esc(v.referencia) + '</td>' +
+        '<td class="num">' + (v.tipo === 'provento' ? moeda(v.valor) : '') + '</td>' +
+        '<td class="num">' + (v.tipo === 'desconto' ? moeda(v.valor) : '') + '</td></tr>';
+    }).join('');
+    const hoje = new Date();
+    const emissao = String(hoje.getDate()).padStart(2, '0') + '/' + String(hoje.getMonth() + 1).padStart(2, '0') + '/' + hoje.getFullYear();
+
+    return '<h1>Recibo de pagamento de verbas rescisórias e quitação</h1>' +
+      '<table class="rb-dados">' +
+        '<tr><th>Empregador</th><td colspan="3">' + esc(d.empresa) + '</td></tr>' +
+        '<tr><th>Empregado</th><td colspan="3">' + esc(d.nome) + '</td></tr>' +
+        '<tr><th>CPF</th><td>' + esc(d.cpf) + '</td><th>Cargo</th><td>' + esc(d.cargo || '—') + '</td></tr>' +
+        '<tr><th>Admissão</th><td>' + d.admissao + '</td><th>Desligamento</th><td>' + d.desligamento + '</td></tr>' +
+        '<tr><th>Salário base</th><td colspan="3">' + moeda(d.salario) + '</td></tr>' +
+      '</table>' +
+      '<table class="rb-verbas"><thead><tr><th>Verba</th><th>Ref.</th><th class="num">Proventos</th><th class="num">Descontos</th></tr></thead>' +
+      '<tbody>' + linhas + '</tbody>' +
+      '<tfoot><tr><td colspan="2">Totais</td><td class="num">' + moeda(r.totalProventos) + '</td><td class="num">' + moeda(r.totalDescontos) + '</td></tr>' +
+      '<tr class="rb-liquido"><td colspan="2">Valor líquido recebido</td><td colspan="2" class="num">' + moeda(r.liquido) + '</td></tr></tfoot></table>' +
+      (r.fgts ? '<p class="rb-nota">FGTS do período (8%), verba a depositar, não incluída no valor líquido: <strong>' + moeda(r.fgts.valor) + '</strong>.</p>' : '') +
+      '<p class="rb-declaracao">Declaro ter recebido de <strong>' + esc(d.empresa) + '</strong> a importância líquida de <strong>' + moeda(r.liquido) +
+      '</strong>, referente às verbas rescisórias acima discriminadas, relativas ao período de trabalho de ' + d.admissao + ' a ' + d.desligamento +
+      ', dando quitação quanto às parcelas e valores especificados neste recibo.</p>' +
+      '<p class="rb-local">______________________________, ____ de ____________________ de ________.</p>' +
+      '<div class="rb-assinaturas">' +
+        '<div><span></span>' + esc(d.nome) + '<small>Empregado — CPF ' + esc(d.cpf) + '</small></div>' +
+        '<div><span></span>' + esc(d.empresa) + '<small>Empregador</small></div>' +
+      '</div>' +
+      '<p class="rb-rodape">Documento gerado em ' + emissao + '.</p>';
+  }
+
+  $('#btn-recibo').addEventListener('click', function () {
+    if (!ultimoResultado) return;
+    $('#recibo').innerHTML = montarRecibo(ultimoResultado);
+    $('#recibo').classList.add('visivel');
+    $('#recibo-area').hidden = false;
+    $('#recibo-area').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  renderizarPendencias();
+  form.dispatchEvent(new Event('submit', { cancelable: true }));
+  inicial = false;
+})();
+
+</script>
+
+</body></html>
