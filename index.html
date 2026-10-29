@@ -90,6 +90,7 @@ input:disabled { background: #eef0f3; color: var(--suave); }
 .pendencias { border: 2px solid var(--alerta-borda); background: var(--alerta-fundo); }
 .pendencias legend { color: var(--alerta); }
 .ajuda { color: var(--suave); font-size: .88rem; margin: 0 0 10px; }
+.ajuda-check { margin: 6px 0 0 24px; }
 .pendencia { background: #fff; border: 1px solid var(--alerta-borda); border-radius: 6px; padding: 10px 12px; margin-top: 10px; }
 .pendencia.tem-erro { border-color: var(--erro); box-shadow: 0 0 0 2px var(--erro-fundo); }
 .pendencia .pergunta { margin: 4px 0 8px; font-weight: 600; }
@@ -299,6 +300,12 @@ table { border-collapse: collapse; width: 100%; }
             <span class="erro-campo"></span>
           </div>
         </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Saldo de salário</legend>
+        <label class="check"><input id="incluirSaldo" type="checkbox" checked> Incluir saldo de salário (dias trabalhados no mês do desligamento)</label>
+        <p class="ajuda ajuda-check">Desmarque quando os dias trabalhados já tiverem sido pagos e a rescisão for acertar apenas 13º, férias e demais direitos do período.</p>
       </fieldset>
 
       <fieldset id="fs-pendencias" class="pendencias" hidden>
@@ -807,11 +814,11 @@ table { border-collapse: collapse; width: 100%; }
    *
    * Entrada: { empresa, nome, cpf, cargo?, salario, admissao, desligamento,
    *   decimoAnteriorPago: { [ano]: boolean }, feriasVencidasPagas: { [indice]: boolean },
-   *   faltas?, incluirDsr?, dsrDias?, calcularFgts?,
+   *   incluirSaldo? (padrão true), faltas?, incluirDsr?, dsrDias?, calcularFgts?,
    *   adicionais?: [{ nome, valor, integraFgts? }], descontos?: [{ nome, valor }] }
    *
    * Saída: { dados, verbas, totalProventos, totalDescontos, liquido,
-   *   fgts|null, confirmacoes, alertas, observacoes }
+   *   fgts|null, saldoIncluido, saldoNaoIncluido|null, confirmacoes, alertas, observacoes }
    */
   function calcularRescisao(input) {
     const erros = validarEntrada(input);
@@ -832,9 +839,14 @@ table { border-collapse: collapse; width: 100%; }
     const provento = function (v) { v.tipo = 'provento'; verbas.push(v); };
     const desconto = function (v) { v.tipo = 'desconto'; verbas.push(v); };
 
-    // 1) Saldo de salário
+    // 1) Saldo de salário (opcional: pode já ter sido pago fora da rescisão)
     const saldo = calcularSaldoSalario(salario, adm, desl);
-    provento({ codigo: 'saldo', descricao: 'Saldo de salário', referencia: saldo.considerados + ' dia(s)', valor: saldo.valor, memoria: saldo.memoria });
+    const incluirSaldo = input.incluirSaldo !== false;
+    if (incluirSaldo) {
+      provento({ codigo: 'saldo', descricao: 'Saldo de salário', referencia: saldo.considerados + ' dia(s)', valor: saldo.valor, memoria: saldo.memoria });
+    } else {
+      observacoes.push('Saldo de salário não incluído na rescisão: informado como já pago (' + saldo.considerados + ' dia(s) = ' + formatarMoeda(saldo.valor) + ', apenas para referência).');
+    }
 
     // 2) 13º proporcional do ano do desligamento
     const a13 = calcularAvos13(adm, desl, anoDesl);
@@ -942,6 +954,9 @@ table { border-collapse: collapse; width: 100%; }
     let fgts = null;
     if (input.calcularFgts) {
       fgts = calcularFgts(salario, adm, desl, decimosFgts, adicionaisBaseFgts, descontoFaltas);
+      if (!incluirSaldo) {
+        fgts.memoria.splice(1, 0, 'O salário do mês do desligamento integra a base, embora tenha sido pago fora da rescisão.');
+      }
       if (confirmacoes.some(function (c) { return c.chave.indexOf('ferias-') === 0 && c.pago; })) {
         alertas.push('Há férias informadas como já pagas. Se foram gozadas, o 1/3 pago integra a base do FGTS e não foi incluído automaticamente — confira.');
       }
@@ -963,6 +978,8 @@ table { border-collapse: collapse; width: 100%; }
       totalDescontos: totalDescontos,
       liquido: liquido,
       fgts: fgts,
+      saldoIncluido: incluirSaldo,
+      saldoNaoIncluido: incluirSaldo ? null : { dias: saldo.considerados, valor: saldo.valor },
       confirmacoes: confirmacoes,
       alertas: alertas,
       observacoes: observacoes
@@ -1142,6 +1159,7 @@ table { border-collapse: collapse; width: 100%; }
       decimoAnteriorPago: decimo, feriasVencidasPagas: ferias,
       faltas: $('#faltas').value, incluirDsr: $('#incluirDsr').checked, dsrDias: $('#dsrDias').value,
       calcularFgts: $('#calcularFgts').checked,
+      incluirSaldo: $('#incluirSaldo').checked,
       adicionais: lerItens('adicionais'), descontos: lerItens('descontos')
     };
   }
@@ -1315,6 +1333,7 @@ table { border-collapse: collapse; width: 100%; }
     $('#dsrDias').disabled = !ent.incluirDsr;
     $('#dsrDias').value = ent.dsrDias || '1';
     $('#calcularFgts').checked = ent.calcularFgts !== false;
+    $('#incluirSaldo').checked = ent.incluirSaldo !== false;
     Object.keys(respostas).forEach(function (k) { delete respostas[k]; });
     Object.keys(ent.decimoAnteriorPago || {}).forEach(function (ano) { respostas['decimo-' + ano] = ent.decimoAnteriorPago[ano] ? 'sim' : 'nao'; });
     Object.keys(ent.feriasVencidasPagas || {}).forEach(function (k) { respostas['ferias-' + k] = ent.feriasVencidasPagas[k] ? 'sim' : 'nao'; });
@@ -1365,6 +1384,7 @@ table { border-collapse: collapse; width: 100%; }
       '<tbody>' + linhas + '</tbody>' +
       '<tfoot><tr><td colspan="2">Totais</td><td class="num">' + moeda(r.totalProventos) + '</td><td class="num">' + moeda(r.totalDescontos) + '</td></tr>' +
       '<tr class="rb-liquido"><td colspan="2">Valor líquido recebido</td><td colspan="2" class="num">' + moeda(r.liquido) + '</td></tr></tfoot></table>' +
+      (r.saldoIncluido ? '' : '<p class="rb-nota">Saldo de salário do mês do desligamento não incluído neste recibo, por já ter sido pago.</p>') +
       (r.fgts ? '<p class="rb-nota">FGTS do período (8%), verba a depositar, não incluída no valor líquido: <strong>' + moeda(r.fgts.valor) + '</strong>.</p>' : '') +
       '<p class="rb-declaracao">Declaro ter recebido de <strong>' + esc(d.empresa) + '</strong> a importância líquida de <strong>' + moeda(r.liquido) +
       '</strong>, referente às verbas rescisórias acima discriminadas, relativas ao período de trabalho de ' + d.admissao + ' a ' + d.desligamento +
