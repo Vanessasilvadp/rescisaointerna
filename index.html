@@ -256,13 +256,14 @@ table { border-collapse: collapse; width: 100%; }
         </div>
         <div class="hist-acoes">
           <input id="hist-busca" type="search" placeholder="Buscar por nome, CPF ou empresa" aria-label="Buscar no histórico">
+          <button type="button" id="btn-exportar" class="btn-secundario">Exportar backup</button>
           <label class="btn-secundario btn-arquivo" for="hist-importar">Importar backup</label>
           <input id="hist-importar" class="oculto" type="file" accept=".json,application/json">
         </div>
       </div>
       <p id="hist-msg" class="hist-msg" role="status" hidden></p>
       <div id="hist-lista"></div>
-      <p class="ajuda hist-nota">Nesta versão do chat, o histórico fica salvo só neste navegador e não é o mesmo do arquivo calculo-rescisorio.html. Para backup e PDF, use o arquivo.</p>
+      <p class="ajuda hist-nota">O histórico fica salvo neste navegador e é separado do histórico do arquivo calculo-rescisorio.html. Exporte um backup de tempos em tempos; ele pode ser importado no arquivo e vice-versa.</p>
     </section>
 
     <div id="editando" class="editando" role="status" hidden></div>
@@ -404,12 +405,14 @@ table { border-collapse: collapse; width: 100%; }
       <div id="res-observacoes"></div>
 
       <div class="acoes">
-        <button type="button" id="btn-recibo" class="btn-primario">Visualizar recibo de quitação</button>
+        <button type="button" id="btn-pdf" class="btn-primario">Baixar recibo de quitação (PDF)</button>
+        <button type="button" id="btn-recibo" class="btn-secundario btn-arq">Visualizar recibo</button>
         <button type="button" id="btn-arquivar" class="btn-secundario btn-arq">Arquivar no histórico</button>
         <button type="button" id="btn-arquivar-novo" class="btn-secundario btn-arq" hidden>Arquivar como nova rescisão</button>
       </div>
       <p id="arquivo-msg" class="hist-msg" role="status" hidden></p>
-      <p class="ajuda">Aqui no chat o navegador não permite imprimir, então o recibo aparece logo abaixo para conferência. Para salvar o PDF, abra o arquivo calculo-rescisorio.html no seu navegador.</p>
+      <p id="pdf-msg" class="hist-msg" role="status" hidden></p>
+      <p class="ajuda">O PDF sai em A4, pronto para imprimir e colher as assinaturas. Confirme o download na janela que aparecer.</p>
     </section>
   </div>
 
@@ -1112,6 +1115,180 @@ table { border-collapse: collapse; width: 100%; }
 }));
 
 </script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script>
+/**
+ * ============================================================================
+ *  recibo-pdf.js — Recibo de quitação em PDF (versão publicada no Claude)
+ * ============================================================================
+ *  No chat a impressão do navegador é bloqueada. Este módulo desenha o recibo
+ *  como PDF vetorial (A4) com jsPDF e entrega o arquivo pela capacidade
+ *  `downloads` do Claude, que pede confirmação ao usuário antes de salvar.
+ *  Expõe window.ReciboPDF.gerar(resultado) -> Promise<Blob>.
+ *  Depende de window.jspdf (jsPDF UMD) e window.RescisaoCalc.
+ * ============================================================================
+ */
+(function () {
+  'use strict';
+
+  const C = window.RescisaoCalc;
+  const moeda = function (v) { return C.formatarMoeda(v); };
+
+  /** Desenha o recibo e devolve o PDF como Blob. */
+  function gerar(r) {
+    if (!window.jspdf || !window.jspdf.jsPDF) throw new Error('Biblioteca de PDF não carregada. Verifique a conexão e recarregue a página.');
+    const doc = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' });
+    const d = r.dados;
+    const M = 16, W = 210 - 2 * M, LIM = 297 - 18;
+    let y = 20;
+
+    const quebra = function (alt) { if (y + alt > LIM) { doc.addPage(); y = 20; } };
+    const fonte = function (estilo, tam) { doc.setFont('helvetica', estilo); doc.setFontSize(tam); };
+
+    // Título
+    fonte('bold', 12.5);
+    doc.splitTextToSize('RECIBO DE PAGAMENTO DE VERBAS RESCISÓRIAS E QUITAÇÃO', W).forEach(function (l) {
+      doc.text(l, 105, y, { align: 'center' }); y += 6;
+    });
+    y += 3;
+
+    // Dados (tabela rótulo/valor)
+    const linhasDados = [
+      [['Empregador', d.empresa]],
+      [['Empregado', d.nome]],
+      [['CPF', d.cpf], ['Cargo', d.cargo || '—']],
+      [['Admissão', d.admissao], ['Desligamento', d.desligamento]]
+    ];
+    if (d.adicional) {
+      linhasDados.push([['Salário base', moeda(d.salario)], ['Adicional', moeda(d.adicional.valor)]]);
+      linhasDados.push([['Adicional', d.adicional.descricao]]);
+      linhasDados.push([['Base de cálculo', moeda(d.remuneracao) + ' (salário + adicional)']]);
+    } else {
+      linhasDados.push([['Salário base', moeda(d.salario)]]);
+    }
+    const rot = 32;
+    doc.setLineWidth(0.25);
+    linhasDados.forEach(function (pares) {
+      const larg = W / pares.length;
+      fonte('normal', 9.5);
+      const alturas = pares.map(function (p) { return doc.splitTextToSize(String(p[1]), larg - rot - 4).length; });
+      const h = Math.max.apply(null, alturas) * 4.3 + 3;
+      quebra(h);
+      pares.forEach(function (p, i) {
+        const x = M + i * larg;
+        doc.setFillColor(238, 238, 238);
+        doc.rect(x, y, rot, h, 'FD');
+        doc.rect(x + rot, y, larg - rot, h, 'S');
+        fonte('bold', 9); doc.text(p[0], x + 2, y + 4.8);
+        fonte('normal', 9.5); doc.text(doc.splitTextToSize(String(p[1]), larg - rot - 4), x + rot + 2, y + 4.8);
+      });
+      y += h;
+    });
+    y += 5;
+
+    // Tabela de verbas
+    const col = [W - 18 - 30 - 30, 18, 30, 30];
+    const xs = [M, M + col[0], M + col[0] + col[1], M + col[0] + col[1] + col[2]];
+    const cab = function () {
+      quebra(8);
+      doc.setFillColor(238, 238, 238);
+      doc.rect(M, y, W, 7, 'FD');
+      fonte('bold', 9);
+      doc.text('Verba', xs[0] + 2, y + 4.8);
+      doc.text('Ref.', xs[1] + 2, y + 4.8);
+      doc.text('Proventos', xs[2] + col[2] - 2, y + 4.8, { align: 'right' });
+      doc.text('Descontos', xs[3] + col[3] - 2, y + 4.8, { align: 'right' });
+      [1, 2, 3].forEach(function (i) { doc.line(xs[i], y, xs[i], y + 7); });
+      y += 7;
+    };
+    cab();
+    r.verbas.forEach(function (v) {
+      fonte('normal', 9.5);
+      const desc = doc.splitTextToSize(v.descricao, col[0] - 4);
+      const h = desc.length * 4.3 + 3;
+      if (y + h > LIM) { doc.addPage(); y = 20; cab(); }
+      doc.rect(M, y, W, h, 'S');
+      [1, 2, 3].forEach(function (i) { doc.line(xs[i], y, xs[i], y + h); });
+      fonte('normal', 9.5);
+      doc.text(desc, xs[0] + 2, y + 4.8);
+      doc.text(String(v.referencia), xs[1] + 2, y + 4.8);
+      if (v.tipo === 'provento') doc.text(moeda(v.valor), xs[2] + col[2] - 2, y + 4.8, { align: 'right' });
+      else doc.text(moeda(v.valor), xs[3] + col[3] - 2, y + 4.8, { align: 'right' });
+      y += h;
+    });
+    // Totais
+    quebra(15);
+    doc.rect(M, y, W, 7, 'S');
+    [2, 3].forEach(function (i) { doc.line(xs[i], y, xs[i], y + 7); });
+    fonte('bold', 9.5);
+    doc.text('Totais', xs[0] + 2, y + 4.8);
+    doc.text(moeda(r.totalProventos), xs[2] + col[2] - 2, y + 4.8, { align: 'right' });
+    doc.text(moeda(r.totalDescontos), xs[3] + col[3] - 2, y + 4.8, { align: 'right' });
+    y += 7;
+    doc.setFillColor(221, 221, 221);
+    doc.rect(M, y, W, 8, 'FD');
+    fonte('bold', 10.5);
+    doc.text('Valor líquido recebido', xs[0] + 2, y + 5.5);
+    doc.text(moeda(r.liquido), M + W - 2, y + 5.5, { align: 'right' });
+    y += 13;
+
+    // Notas
+    fonte('normal', 9);
+    const notas = [];
+    if (r.saldoIncluido === false) notas.push('Saldo de salário do mês do desligamento não incluído neste recibo, por já ter sido pago.');
+    if (r.fgts) notas.push('FGTS do período (8%), verba a depositar, não incluída no valor líquido: ' + moeda(r.fgts.valor) + '.');
+    notas.forEach(function (n) {
+      const l = doc.splitTextToSize(n, W);
+      quebra(l.length * 4.2 + 1);
+      doc.text(l, M, y); y += l.length * 4.2 + 1.5;
+    });
+    y += 3;
+
+    // Declaração
+    fonte('normal', 10.5);
+    const decl = 'Declaro ter recebido de ' + d.empresa + ' a importância líquida de ' + moeda(r.liquido) +
+      ', referente às verbas rescisórias acima discriminadas, relativas ao período de trabalho de ' + d.admissao + ' a ' + d.desligamento +
+      ', dando quitação quanto às parcelas e valores especificados neste recibo.';
+    const ld = doc.splitTextToSize(decl, W);
+    quebra(ld.length * 5 + 60);
+    doc.text(ld, M, y, { maxWidth: W, align: 'justify' });
+    y += ld.length * 5 + 10;
+    doc.text('______________________________, ____ de ____________________ de ________.', M, y);
+    y += 28;
+
+    // Assinaturas
+    const la = (W - 20) / 2;
+    [[M, d.nome, 'Empregado — CPF ' + d.cpf], [M + la + 20, d.empresa, 'Empregador']].forEach(function (a) {
+      doc.line(a[0], y, a[0] + la, y);
+      fonte('normal', 10);
+      const n = doc.splitTextToSize(a[1], la);
+      doc.text(n, a[0] + la / 2, y + 5, { align: 'center' });
+      fonte('normal', 8.5);
+      doc.text(a[2], a[0] + la / 2, y + 5 + n.length * 4.5, { align: 'center' });
+    });
+    y += 22;
+
+    const hoje = new Date();
+    const p = function (n) { return String(n).padStart(2, '0'); };
+    fonte('normal', 7.5);
+    doc.setTextColor(85, 85, 85);
+    doc.text('Documento gerado em ' + p(hoje.getDate()) + '/' + p(hoje.getMonth() + 1) + '/' + hoje.getFullYear() + '.', M + W, Math.min(y, LIM + 6), { align: 'right' });
+    doc.setTextColor(0, 0, 0);
+
+    return doc.output('blob');
+  }
+
+  /** Nome de arquivo seguro: recibo-rescisao-nome-do-empregado.pdf */
+  function nomeArquivo(r) {
+    const base = String(r.dados.nome || 'empregado').normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
+    return 'recibo-rescisao-' + (base || 'empregado') + '.pdf';
+  }
+
+  window.ReciboPDF = { gerar: gerar, nomeArquivo: nomeArquivo };
+})();
+
+</script>
   <script>
 /**
  * ============================================================================
@@ -1547,6 +1724,33 @@ table { border-collapse: collapse; width: 100%; }
     $('#recibo-area').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
+
+  function msgPdf(t, tipo) { const el = $('#pdf-msg'); el.textContent = t; el.className = 'hist-msg ' + (tipo || 'ok'); el.hidden = !t; }
+  document.addEventListener('rescisao:desatualizada', function () { $('#btn-pdf').disabled = true; msgPdf(''); });
+  document.addEventListener('rescisao:calculada', function () { $('#btn-pdf').disabled = false; msgPdf(''); });
+  $('#btn-pdf').addEventListener('click', function () {
+    if (!ultimoResultado) return;
+    let blob;
+    try { blob = window.ReciboPDF.gerar(ultimoResultado); }
+    catch (e) { msgPdf(e.message || 'Não foi possível gerar o PDF.', 'erro'); return; }
+    const nome = window.ReciboPDF.nomeArquivo(ultimoResultado);
+    const btn = $('#btn-pdf');
+    btn.disabled = true;
+    msgPdf('Gerando o PDF…');
+    const fim = function () { btn.disabled = !ultimoResultado || !$('#aviso-desatualizado').hidden; };
+    if (!window.claude || typeof window.claude.use !== 'function') { msgPdf('Este ambiente não permite baixar arquivos.', 'erro'); fim(); return; }
+    window.claude.use('downloads').then(function (dl) {
+      if (!dl) { msgPdf('Este ambiente não permite baixar arquivos. Use o arquivo calculo-rescisorio.html no navegador.', 'erro'); return; }
+      return dl.save({ filename: nome, data: blob }).then(function () {
+        msgPdf('PDF salvo: ' + nome + '. Abra o arquivo e imprima.', 'ok');
+      }, function (e) {
+        if (e && e.code === 'declined') msgPdf('Download cancelado.');
+        else if (e && e.code === 'rate_limited') msgPdf('Já existe uma confirmação aberta. Responda a ela e tente de novo.', 'erro');
+        else msgPdf('Não foi possível salvar o PDF aqui. Use o arquivo calculo-rescisorio.html no navegador.', 'erro');
+      });
+    }).then(fim, fim);
+  });
+
   renderizarPendencias();
 })();
 
@@ -1789,15 +1993,33 @@ table { border-collapse: collapse; width: 100%; }
     if (!lista || !lista.length) { mensagem('Não há rescisões arquivadas para exportar.', 'erro'); return; }
     const conteudo = JSON.stringify({ aplicativo: 'calculo-rescisorio', versao: 1, exportadoEm: new Date().toISOString(), registros: lista }, null, 2);
     const blob = new Blob([conteudo], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
     const hoje = new Date();
-    a.href = url;
-    a.download = 'historico-rescisoes-' + hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0') + '-' + String(hoje.getDate()).padStart(2, '0') + '.json';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    const nome = 'historico-rescisoes-' + hoje.getFullYear() + '-' + String(hoje.getMonth() + 1).padStart(2, '0') + '-' + String(hoje.getDate()).padStart(2, '0') + '.json';
+    const okMsg = 'Backup exportado com ' + lista.length + ' rescisão(ões). Guarde o arquivo em local seguro: ele contém dados pessoais.';
+    const baixarDireto = function () {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = nome;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+      mensagem(okMsg, 'ok');
+    };
+    // Dentro do Claude, o arquivo é entregue pela capacidade "downloads" (com confirmação).
+    if (window.claude && typeof window.claude.use === 'function') {
+      mensagem('Preparando o backup…', 'ok');
+      window.claude.use('downloads').then(function (dl) {
+        if (!dl) { mensagem('Este ambiente não permite baixar arquivos. Use o arquivo calculo-rescisorio.html no navegador.', 'erro'); return; }
+        return dl.save({ filename: nome, data: blob }).then(function () { mensagem(okMsg, 'ok'); }, function (e) {
+          mensagem(e && e.code === 'declined' ? 'Exportação cancelada.' : 'Não foi possível salvar o backup aqui. Use o arquivo calculo-rescisorio.html no navegador.', e && e.code === 'declined' ? 'ok' : 'erro');
+        });
+      });
+      return;
+    }
+    baixarDireto();
+    return;
     mensagem('Backup exportado com ' + lista.length + ' rescisão(ões). Guarde o arquivo em local seguro: ele contém dados pessoais.', 'ok');
   }
 
