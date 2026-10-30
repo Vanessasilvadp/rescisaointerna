@@ -1,10 +1,7 @@
-<!doctype html>
-<html lang="pt-BR">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Cálculo Rescisório — Vínculo não registrado</title>
-  <style>
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Rescisão sem Registro</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
 /* ==========================================================================
    styles.css — Cálculo rescisório (tela + impressão do recibo)
    ========================================================================== */
@@ -26,7 +23,22 @@
   --ok-fundo: #ecfdf3;
   --info-fundo: #eef4fb;
   --raio: 8px;
+  --campo-fundo: #ffffff; --desabilitado: #eef0f3; --linha-total: #f7f8fa; --memoria-fundo: #fafbfc;
+  --tag-texto: #4a3200; --alerta-texto: #5c3d00; --info-borda: #c8d8ea; --ok-borda: #abefc6;
+  --badge-ok: #d1fadf; --badge-erro: #fee4e2; --sobre-primaria: #ffffff;
 }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --fundo: #13171e; --cartao: #1b212b; --texto: #e6e9ef; --suave: #9aa3b2; --borda: #313a48;
+  --primaria: #6fa8dc; --primaria-escura: #8dbbe5; --erro: #f97066; --erro-fundo: #3a1d1b;
+  --alerta: #f0c24b; --alerta-fundo: #2e2611; --alerta-borda: #8a6d1f; --ok: #47cd89; --ok-fundo: #12291e;
+  --info-fundo: #17263a; --campo-fundo: #11161d; --desabilitado: #232a35; --linha-total: #222a36;
+  --memoria-fundo: #171d26; --tag-texto: #fff3d1; --alerta-texto: #f3d58a; --info-borda: #2c4766;
+  --ok-borda: #24583f; --badge-ok: #1d4a33; --badge-erro: #4a201d; --sobre-primaria: #0f1620; color-scheme: dark; } }
+:root[data-theme="dark"] { --fundo: #13171e; --cartao: #1b212b; --texto: #e6e9ef; --suave: #9aa3b2; --borda: #313a48;
+  --primaria: #6fa8dc; --primaria-escura: #8dbbe5; --erro: #f97066; --erro-fundo: #3a1d1b;
+  --alerta: #f0c24b; --alerta-fundo: #2e2611; --alerta-borda: #8a6d1f; --ok: #47cd89; --ok-fundo: #12291e;
+  --info-fundo: #17263a; --campo-fundo: #11161d; --desabilitado: #232a35; --linha-total: #222a36;
+  --memoria-fundo: #171d26; --tag-texto: #fff3d1; --alerta-texto: #f3d58a; --info-borda: #2c4766;
+  --ok-borda: #24583f; --badge-ok: #1d4a33; --badge-erro: #4a201d; --sobre-primaria: #0f1620; color-scheme: dark; }
 
 * { box-sizing: border-box; }
 
@@ -37,7 +49,8 @@ body {
   font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
-.app { max-width: 960px; margin: 0 auto; padding: 24px 16px 64px; }
+.app { max-width: 960px; margin: 0 auto; padding-block: 24px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.campo, .item-linha > *, .resultado, .historico { min-width: 0; }
 
 .topo h1 { margin: 0; font-size: 1.6rem; color: var(--primaria); }
 .topo p { margin: 4px 0 16px; color: var(--suave); }
@@ -68,17 +81,17 @@ legend { font-weight: 700; padding: 0 6px; color: var(--primaria); }
 .campo label.sub { font-weight: 500; color: var(--suave); margin-top: 6px; }
 .opcional { font-weight: 400; color: var(--suave); }
 
-input[type="text"], input[type="number"], input[type="date"] {
+input[type="text"], input[type="number"], input[type="date"], select {
   width: 100%;
   padding: 9px 10px;
   border: 1px solid var(--borda);
   border-radius: 6px;
   font: inherit;
-  background: #fff;
+  background: var(--campo-fundo);
   color: var(--texto);
 }
 input:focus { outline: 2px solid var(--primaria); outline-offset: 1px; border-color: var(--primaria); }
-input:disabled { background: #eef0f3; color: var(--suave); }
+input:disabled { background: var(--desabilitado); color: var(--suave); }
 
 .check { display: flex; align-items: center; gap: 8px; font-weight: 500; cursor: pointer; }
 .check input { width: 16px; height: 16px; }
@@ -91,18 +104,20 @@ input:disabled { background: #eef0f3; color: var(--suave); }
 .pendencias legend { color: var(--alerta); }
 .ajuda { color: var(--suave); font-size: .88rem; margin: 0 0 10px; }
 .ajuda-check { margin: 6px 0 0 24px; }
-.pendencia { background: #fff; border: 1px solid var(--alerta-borda); border-radius: 6px; padding: 10px 12px; margin-top: 10px; }
+.dica-campo { display: block; color: var(--suave); font-size: .78rem; margin-top: 3px; }
+.composicao { margin: 14px 0 0; padding: 9px 12px; border-radius: 6px; background: var(--info-fundo); font-size: .9rem; font-variant-numeric: tabular-nums; }
+.pendencia { background: var(--cartao); border: 1px solid var(--alerta-borda); border-radius: 6px; padding: 10px 12px; margin-top: 10px; }
 .pendencia.tem-erro { border-color: var(--erro); box-shadow: 0 0 0 2px var(--erro-fundo); }
 .pendencia .pergunta { margin: 4px 0 8px; font-weight: 600; }
 .radios { display: flex; flex-wrap: wrap; gap: 8px 20px; }
 .radios label { display: flex; gap: 6px; align-items: center; cursor: pointer; }
-.tag { display: inline-block; font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; background: var(--alerta-borda); color: #4a3200; padding: 2px 7px; border-radius: 10px; font-weight: 700; }
+.tag { display: inline-block; font-size: .7rem; text-transform: uppercase; letter-spacing: .05em; background: var(--alerta-borda); color: var(--tag-texto); padding: 2px 7px; border-radius: 10px; font-weight: 700; }
 
 /* Itens dinâmicos */
 .lista-itens:empty { display: none; }
 .item-linha { display: grid; grid-template-columns: 1fr 160px auto auto; gap: 10px; align-items: start; padding: 10px 0; border-bottom: 1px dashed var(--borda); }
 .item-check { margin-top: 30px; font-size: .85rem; white-space: nowrap; }
-.btn-remover { margin-top: 24px; width: 36px; height: 36px; border: 1px solid var(--borda); background: #fff; border-radius: 6px; font-size: 1.2rem; cursor: pointer; color: var(--erro); }
+.btn-remover { margin-top: 24px; width: 36px; height: 36px; border: 1px solid var(--borda); background: var(--cartao); border-radius: 6px; font-size: 1.2rem; cursor: pointer; color: var(--erro); }
 @media (max-width: 640px) {
   .item-linha { grid-template-columns: 1fr auto; }
   .item-check { margin-top: 0; grid-column: 1; }
@@ -111,10 +126,10 @@ input:disabled { background: #eef0f3; color: var(--suave); }
 /* Botões */
 .acoes { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
 button { font: inherit; cursor: pointer; }
-.btn-primario { background: var(--primaria); color: #fff; border: 0; border-radius: 6px; padding: 11px 20px; font-weight: 600; }
+.btn-primario { background: var(--primaria); color: var(--sobre-primaria); border: 0; border-radius: 6px; padding: 11px 20px; font-weight: 600; }
 .btn-primario:hover { background: var(--primaria-escura); }
 .btn-primario:disabled { background: #9aa4b2; cursor: not-allowed; }
-.btn-secundario { background: #fff; color: var(--primaria); border: 1px solid var(--primaria); border-radius: 6px; padding: 9px 16px; margin-top: 10px; }
+.btn-secundario { background: var(--cartao); color: var(--primaria); border: 1px solid var(--primaria); border-radius: 6px; padding: 9px 16px; margin-top: 10px; }
 
 .erros-resumo { background: var(--erro-fundo); border: 1px solid var(--erro); color: var(--erro); border-radius: var(--raio); padding: 12px 14px; margin-bottom: 12px; }
 .erros-resumo ul { margin: 6px 0 0; padding-left: 20px; }
@@ -127,36 +142,37 @@ button { font: inherit; cursor: pointer; }
 .aviso-desatualizado { background: var(--alerta-fundo); border: 1px solid var(--alerta-borda); color: var(--alerta); padding: 10px 12px; border-radius: 6px; margin-bottom: 14px; }
 
 .res-dados { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px 16px; margin-bottom: 14px; }
+.res-dados .sub-info { color: var(--suave); }
 .res-dados span { display: block; font-size: .75rem; text-transform: uppercase; color: var(--suave); letter-spacing: .04em; }
 
 .caixa { border-radius: 6px; padding: 10px 14px; margin: 12px 0; font-size: .9rem; }
 .caixa ul { margin: 6px 0 0; padding-left: 20px; }
-.caixa.alerta { background: var(--alerta-fundo); border: 1px solid var(--alerta-borda); color: #5c3d00; }
-.caixa.confirmacao { background: #fff; border: 1px solid var(--alerta-borda); }
-.caixa.info { background: var(--info-fundo); border: 1px solid #c8d8ea; }
-.caixa.fgts { background: var(--ok-fundo); border: 1px solid #abefc6; }
+.caixa.alerta { background: var(--alerta-fundo); border: 1px solid var(--alerta-borda); color: var(--alerta-texto); }
+.caixa.confirmacao { background: var(--cartao); border: 1px solid var(--alerta-borda); }
+.caixa.info { background: var(--info-fundo); border: 1px solid var(--info-borda); }
+.caixa.fgts { background: var(--ok-fundo); border: 1px solid var(--ok-borda); }
 .fgts-topo { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
 .fgts-topo small { display: block; color: var(--suave); }
 .fgts-valor { font-size: 1.3rem; font-weight: 700; color: var(--ok); }
 .caixa details { margin-top: 8px; }
 
-.badge { display: inline-block; font-size: .7rem; font-weight: 700; text-transform: uppercase; padding: 1px 7px; border-radius: 10px; background: var(--alerta-borda); color: #4a3200; vertical-align: middle; }
-.badge.pago { background: #d1fadf; color: var(--ok); }
-.badge.naopago { background: #fee4e2; color: var(--erro); }
+.badge { display: inline-block; font-size: .7rem; font-weight: 700; text-transform: uppercase; padding: 1px 7px; border-radius: 10px; background: var(--alerta-borda); color: var(--tag-texto); vertical-align: middle; }
+.badge.pago { background: var(--badge-ok); color: var(--ok); }
+.badge.naopago { background: var(--badge-erro); color: var(--erro); }
 
 .tabela-rolagem { overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; }
 .tabela-verbas th, .tabela-verbas td, .tabela-mini th, .tabela-mini td { padding: 8px 10px; border-bottom: 1px solid var(--borda); text-align: left; }
-.tabela-verbas thead th { background: var(--primaria); color: #fff; font-weight: 600; }
-.tabela-verbas tfoot td { font-weight: 700; background: #f7f8fa; }
-.tabela-verbas .liquido td { background: var(--primaria); color: #fff; font-size: 1.05rem; }
-.tabela-mini { font-size: .85rem; margin-top: 6px; background: #fff; }
+.tabela-verbas thead th { background: var(--primaria); color: var(--sobre-primaria); font-weight: 600; }
+.tabela-verbas tfoot td { font-weight: 700; background: var(--linha-total); }
+.tabela-verbas .liquido td { background: var(--primaria); color: var(--sobre-primaria); font-size: 1.05rem; }
+.tabela-mini { font-size: .85rem; margin-top: 6px; background: var(--cartao); }
 .num { text-align: right !important; white-space: nowrap; }
 .ref { color: var(--suave); white-space: nowrap; }
 .desc { color: var(--erro); }
-.liquido .desc, .liquido .num { color: #fff; }
+.liquido .desc, .liquido .num { color: var(--sobre-primaria); }
 
-.memoria-item { border: 1px solid var(--borda); border-radius: 6px; margin-bottom: 6px; background: #fafbfc; }
+.memoria-item { border: 1px solid var(--borda); border-radius: 6px; margin-bottom: 6px; background: var(--memoria-fundo); }
 .memoria-item.manual { border-left: 4px solid var(--alerta-borda); }
 .memoria-item summary { display: flex; justify-content: space-between; gap: 12px; padding: 8px 12px; cursor: pointer; font-weight: 600; }
 .memoria-item ol { margin: 0; padding: 0 16px 10px 36px; font-size: .88rem; color: var(--suave); }
@@ -195,33 +211,31 @@ table { border-collapse: collapse; width: 100%; }
 /* Recibo: oculto na tela, único conteúdo na impressão */
 .recibo { display: none; }
 
-@media print {
-  @page { size: A4; margin: 18mm 16mm; }
-  body { background: #fff; font: 11pt/1.45 Georgia, "Times New Roman", serif; color: #000; }
-  .app { display: none !important; }
-  .recibo { display: block; }
-  .recibo h1 { font-size: 14pt; text-align: center; text-transform: uppercase; margin: 0 0 14px; letter-spacing: .03em; }
-  .recibo table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
-  .recibo th, .recibo td { border: 1px solid #000; padding: 5px 7px; text-align: left; vertical-align: top; }
-  .rb-dados th { width: 18%; background: #eee; font-weight: 700; }
-  .rb-verbas thead th { background: #eee; }
-  .rb-verbas tfoot td { font-weight: 700; }
-  .rb-liquido td { background: #ddd; font-size: 12pt; }
-  .recibo .num { text-align: right; }
-  .rb-nota { font-size: 10pt; }
-  .rb-declaracao { text-align: justify; margin: 16px 0; }
-  .rb-local { margin: 24px 0 48px; }
-  .rb-assinaturas { display: flex; justify-content: space-between; gap: 40px; }
-  .rb-assinaturas div { flex: 1; text-align: center; }
-  .rb-assinaturas span { display: block; border-top: 1px solid #000; margin-bottom: 4px; }
-  .rb-assinaturas small { display: block; font-size: 9pt; }
-  .rb-rodape { margin-top: 36px; font-size: 8pt; color: #555; text-align: right; }
-  .recibo tr, .rb-assinaturas { page-break-inside: avoid; }
-}
+
+/* Recibo exibido na tela (no chat a impressão é bloqueada). Folha sempre branca, como o papel. */
+.recibo-area { max-width: 960px; margin: 0 auto; padding-block: 0 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.recibo-area h2 { color: var(--primaria); margin: 0 0 4px; }
+.recibo-rolagem { overflow-x: auto; padding: 4px 0 16px; }
+.recibo.visivel { display: block; background: #ffffff; color: #000000; width: 760px; margin: 0 auto; padding: 48px 52px; box-shadow: 0 2px 14px rgba(0,0,0,.25); border-radius: 2px; font: 14px/1.45 Georgia, "Times New Roman", serif; }
+.recibo.visivel h1 { font-size: 17px; text-align: center; text-transform: uppercase; margin: 0 0 16px; letter-spacing: .03em; color: #000000; }
+.recibo.visivel table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+.recibo.visivel th, .recibo.visivel td { border: 1px solid #000000; padding: 5px 7px; text-align: left; vertical-align: top; color: #000000; background: transparent; }
+.recibo.visivel .rb-dados th { width: 18%; background: #eeeeee; }
+.recibo.visivel .rb-verbas thead th { background: #eeeeee; }
+.recibo.visivel .rb-verbas tfoot td { font-weight: 700; }
+.recibo.visivel .rb-liquido td { background: #dddddd; font-size: 15px; }
+.recibo.visivel .num { text-align: right !important; white-space: nowrap; }
+.recibo.visivel .rb-nota { font-size: 13px; }
+.recibo.visivel .rb-declaracao { text-align: justify; margin: 16px 0; }
+.recibo.visivel .rb-local { margin: 24px 0 48px; }
+.recibo.visivel .rb-assinaturas { display: flex; justify-content: space-between; gap: 40px; }
+.recibo.visivel .rb-assinaturas div { flex: 1; text-align: center; }
+.recibo.visivel .rb-assinaturas span { display: block; border-top: 1px solid #000000; margin-bottom: 4px; }
+.recibo.visivel .rb-assinaturas small { display: block; font-size: 11px; }
+.recibo.visivel .rb-rodape { margin-top: 36px; font-size: 10px; color: #555555; text-align: right; }
 
 </style>
-</head>
-<body>
+
   <div class="app">
     <header class="topo">
       <h1>Cálculo rescisório</h1>
@@ -242,14 +256,13 @@ table { border-collapse: collapse; width: 100%; }
         </div>
         <div class="hist-acoes">
           <input id="hist-busca" type="search" placeholder="Buscar por nome, CPF ou empresa" aria-label="Buscar no histórico">
-          <button type="button" id="btn-exportar" class="btn-secundario">Exportar backup</button>
           <label class="btn-secundario btn-arquivo" for="hist-importar">Importar backup</label>
           <input id="hist-importar" class="oculto" type="file" accept=".json,application/json">
         </div>
       </div>
       <p id="hist-msg" class="hist-msg" role="status" hidden></p>
       <div id="hist-lista"></div>
-      <p class="ajuda hist-nota">O histórico fica salvo neste navegador, neste computador. Exporte um backup de tempos em tempos: se os dados do navegador forem apagados, o histórico se perde.</p>
+      <p class="ajuda hist-nota">Nesta versão do chat, o histórico fica salvo só neste navegador e não é o mesmo do arquivo calculo-rescisorio.html. Para backup e PDF, use o arquivo.</p>
     </section>
 
     <div id="editando" class="editando" role="status" hidden></div>
@@ -290,6 +303,23 @@ table { border-collapse: collapse; width: 100%; }
             <span class="erro-campo"></span>
           </div>
           <div class="campo">
+            <label for="adicionalTipo">Insalubridade ou periculosidade</label>
+            <select id="adicionalTipo">
+              <option value="nenhum" selected>Não tem direito</option>
+              <option value="insal10">Insalubridade 10% (grau mínimo)</option>
+              <option value="insal20">Insalubridade 20% (grau médio)</option>
+              <option value="insal40">Insalubridade 40% (grau máximo)</option>
+              <option value="peric30">Periculosidade 30% do salário base</option>
+            </select>
+            <span class="erro-campo"></span>
+          </div>
+          <div class="campo" id="campo-sm" hidden>
+            <label for="salarioMinimo">Salário mínimo nacional (R$) *</label>
+            <input id="salarioMinimo" type="text" inputmode="decimal" value="1.621,00" placeholder="Ex.: 1.621,00" data-moeda>
+            <span class="dica-campo">Valor de 2026. Ajuste se a rescisão for de outro ano.</span>
+            <span class="erro-campo"></span>
+          </div>
+          <div class="campo">
             <label for="admissao">Data de admissão *</label>
             <input id="admissao" type="date">
             <span class="erro-campo"></span>
@@ -300,6 +330,7 @@ table { border-collapse: collapse; width: 100%; }
             <span class="erro-campo"></span>
           </div>
         </div>
+        <p id="composicao" class="composicao" hidden></p>
       </fieldset>
 
       <fieldset>
@@ -373,16 +404,16 @@ table { border-collapse: collapse; width: 100%; }
       <div id="res-observacoes"></div>
 
       <div class="acoes">
-        <button type="button" id="btn-recibo" class="btn-primario">Gerar recibo de quitação (PDF)</button>
+        <button type="button" id="btn-recibo" class="btn-primario">Visualizar recibo de quitação</button>
         <button type="button" id="btn-arquivar" class="btn-secundario btn-arq">Arquivar no histórico</button>
         <button type="button" id="btn-arquivar-novo" class="btn-secundario btn-arq" hidden>Arquivar como nova rescisão</button>
       </div>
       <p id="arquivo-msg" class="hist-msg" role="status" hidden></p>
-      <p class="ajuda">Na janela de impressão, escolha <strong>Salvar como PDF</strong> como destino.</p>
+      <p class="ajuda">Aqui no chat o navegador não permite imprimir, então o recibo aparece logo abaixo para conferência. Para salvar o PDF, abra o arquivo calculo-rescisorio.html no seu navegador.</p>
     </section>
   </div>
 
-  <section id="recibo" class="recibo" aria-hidden="true"></section>
+  <section id="recibo-area" class="recibo-area" hidden><h2>Recibo de rescisão e quitação</h2><p class="ajuda">Prévia exata do documento que sai em PDF no arquivo calculo-rescisorio.html.</p><div class="recibo-rolagem"><section id="recibo" class="recibo"></section></div></section>
 
   <script>
 /**
@@ -404,6 +435,10 @@ table { border-collapse: collapse; width: 100%; }
  *     (CLT, art. 146, parágrafo único). Férias sempre com 1/3 (CF, art. 7º, XVII).
  *   - FGTS: 8% (Lei 8.036/90, art. 15). Férias indenizadas + 1/3 ficam fora
  *     da base (OJ 195 da SDI-1/TST). Valor histórico, sem atualização.
+ *   - Insalubridade (NR-15; CLT, art. 192): 10%, 20% ou 40% do salário mínimo
+ *     nacional. Periculosidade (CLT, art. 193, §1º): 30% do salário base.
+ *     Os adicionais não se acumulam (art. 193, §2º). O adicional integra a
+ *     remuneração usada em saldo, 13º, férias, faltas/DSR e FGTS (Súmula 139 TST).
  *   - Não calcula INSS nem IRRF (fora do escopo).
  * ============================================================================
  */
@@ -551,6 +586,47 @@ table { border-collapse: collapse; width: 100%; }
     const d = String(cpf || '').replace(/\D/g, '');
     if (d.length !== 11) return String(cpf || '');
     return d.slice(0, 3) + '.' + d.slice(3, 6) + '.' + d.slice(6, 9) + '-' + d.slice(9);
+  }
+
+  /* ------------------------------------------------------------------------
+   * Adicional de insalubridade ou periculosidade
+   * ---------------------------------------------------------------------- */
+
+  const ADICIONAIS_LEGAIS = {
+    insal10: { descricao: 'Insalubridade grau mínimo (10% s/ salário mínimo)', percentual: 0.10, sobre: 'minimo' },
+    insal20: { descricao: 'Insalubridade grau médio (20% s/ salário mínimo)', percentual: 0.20, sobre: 'minimo' },
+    insal40: { descricao: 'Insalubridade grau máximo (40% s/ salário mínimo)', percentual: 0.40, sobre: 'minimo' },
+    peric30: { descricao: 'Periculosidade (30% s/ salário base)', percentual: 0.30, sobre: 'salario' }
+  };
+
+  function tipoAdicional(v) {
+    return (v === undefined || v === null || v === '' || v === 'nenhum') ? 'nenhum' : String(v);
+  }
+
+  /**
+   * Remuneração base dos cálculos: salário base + adicional legal (se houver).
+   * Insalubridade incide sobre o salário mínimo nacional; periculosidade, sobre
+   * o salário base. Retorna { salarioBase, adicional|null, remuneracao, memoria }.
+   */
+  function calcularRemuneracao(salarioBase, tipo, salarioMinimo) {
+    const t = tipoAdicional(tipo);
+    const def = ADICIONAIS_LEGAIS[t];
+    if (!def) return { salarioBase: salarioBase, adicional: null, remuneracao: salarioBase, memoria: [] };
+    const base = def.sobre === 'minimo' ? salarioMinimo : salarioBase;
+    const valor = round2(base * def.percentual);
+    const remuneracao = round2(salarioBase + valor);
+    const pct = Math.round(def.percentual * 100) + '%';
+    return {
+      salarioBase: salarioBase,
+      adicional: { tipo: t, descricao: def.descricao, percentual: def.percentual, sobre: def.sobre, base: base, valor: valor },
+      remuneracao: remuneracao,
+      memoria: [
+        (def.sobre === 'minimo'
+          ? 'Adicional: ' + pct + ' × salário mínimo nacional ' + formatarMoeda(base) + ' = ' + formatarMoeda(valor) + '.'
+          : 'Adicional: ' + pct + ' × salário base ' + formatarMoeda(base) + ' = ' + formatarMoeda(valor) + '.'),
+        'Remuneração base de cálculo: ' + formatarMoeda(salarioBase) + ' + ' + formatarMoeda(valor) + ' = ' + formatarMoeda(remuneracao) + '.'
+      ]
+    };
   }
 
   /* ------------------------------------------------------------------------
@@ -705,6 +781,17 @@ table { border-collapse: collapse; width: 100%; }
     else if (Number.isNaN(salario)) add('salario', 'O salário base deve ser numérico (ex.: 1.518,00).');
     else if (salario <= 0) add('salario', 'O salário base deve ser maior que zero.');
 
+    const tipoAd = tipoAdicional(i.adicionalTipo);
+    if (tipoAd !== 'nenhum' && !ADICIONAIS_LEGAIS[tipoAd]) {
+      add('adicionalTipo', 'Opção de adicional inválida.');
+    } else if (ADICIONAIS_LEGAIS[tipoAd] && ADICIONAIS_LEGAIS[tipoAd].sobre === 'minimo') {
+      const smVazio = i.salarioMinimo === undefined || i.salarioMinimo === null || (typeof i.salarioMinimo === 'string' && !i.salarioMinimo.trim());
+      const sm = parseValor(i.salarioMinimo);
+      if (smVazio) add('salarioMinimo', 'Informe o salário mínimo nacional para calcular a insalubridade.');
+      else if (Number.isNaN(sm)) add('salarioMinimo', 'O salário mínimo deve ser numérico (ex.: 1.621,00).');
+      else if (sm <= 0) add('salarioMinimo', 'O salário mínimo deve ser maior que zero.');
+    }
+
     const adm = parseDataISO(i.admissao);
     const desl = parseDataISO(i.desligamento);
     if (!i.admissao) add('admissao', 'Informe a data de admissão.');
@@ -824,7 +911,10 @@ table { border-collapse: collapse; width: 100%; }
     const erros = validarEntrada(input);
     if (erros.length) throw criarErroValidacao(erros);
 
-    const salario = parseValor(input.salario);
+    const salarioBase = parseValor(input.salario);
+    const comp = calcularRemuneracao(salarioBase, input.adicionalTipo, parseValor(input.salarioMinimo));
+    // A partir daqui, "salario" é a remuneração base (salário + adicional legal).
+    const salario = comp.remuneracao;
     const adm = parseDataISO(input.admissao);
     const desl = parseDataISO(input.desligamento);
     const anoDesl = desl.getUTCFullYear();
@@ -944,6 +1034,14 @@ table { border-collapse: collapse; width: 100%; }
         memoria: ['Valor informado pelo usuário: ' + formatarMoeda(valor) + '.'] });
     });
 
+    // Base de cálculo com adicional: registrada na memória das verbas calculadas sobre a remuneração
+    if (comp.adicional) {
+      verbas.forEach(function (v) {
+        if (/^(adicional-|desconto-)/.test(v.codigo)) return;
+        v.memoria.unshift('Base: ' + formatarMoeda(salarioBase) + ' + ' + comp.adicional.descricao.toLowerCase() + ' ' + formatarMoeda(comp.adicional.valor) + ' = ' + formatarMoeda(salario) + '.');
+      });
+    }
+
     // Totais
     const totalProventos = round2(verbas.filter(function (v) { return v.tipo === 'provento'; }).reduce(function (s, v) { return s + v.valor; }, 0));
     const totalDescontos = round2(verbas.filter(function (v) { return v.tipo === 'desconto'; }).reduce(function (s, v) { return s + v.valor; }, 0));
@@ -954,8 +1052,11 @@ table { border-collapse: collapse; width: 100%; }
     let fgts = null;
     if (input.calcularFgts) {
       fgts = calcularFgts(salario, adm, desl, decimosFgts, adicionaisBaseFgts, descontoFaltas);
+      if (comp.adicional) {
+        fgts.memoria.splice(0, 0, 'Salários calculados sobre a remuneração com adicional (' + formatarMoeda(salario) + ').');
+      }
       if (!incluirSaldo) {
-        fgts.memoria.splice(1, 0, 'O salário do mês do desligamento integra a base, embora tenha sido pago fora da rescisão.');
+        fgts.memoria.splice(comp.adicional ? 2 : 1, 0, 'O salário do mês do desligamento integra a base, embora tenha sido pago fora da rescisão.');
       }
       if (confirmacoes.some(function (c) { return c.chave.indexOf('ferias-') === 0 && c.pago; })) {
         alertas.push('Há férias informadas como já pagas. Se foram gozadas, o 1/3 pago integra a base do FGTS e não foi incluído automaticamente — confira.');
@@ -968,7 +1069,9 @@ table { border-collapse: collapse; width: 100%; }
         nome: texto(input.nome),
         cpf: formatarCPF(input.cpf),
         cargo: texto(input.cargo),
-        salario: salario,
+        salario: salarioBase,
+        adicional: comp.adicional,
+        remuneracao: comp.remuneracao,
         admissao: formatarData(adm),
         desligamento: formatarData(desl),
         diasVinculo: diasEntre(adm, desl)
@@ -978,6 +1081,7 @@ table { border-collapse: collapse; width: 100%; }
       totalDescontos: totalDescontos,
       liquido: liquido,
       fgts: fgts,
+      composicao: comp.memoria,
       saldoIncluido: incluirSaldo,
       saldoNaoIncluido: incluirSaldo ? null : { dias: saldo.considerados, valor: saldo.valor },
       confirmacoes: confirmacoes,
@@ -995,6 +1099,7 @@ table { border-collapse: collapse; width: 100%; }
     calcularAvosFerias: calcularAvosFerias,
     periodosAquisitivos: periodosAquisitivos,
     calcularFgts: calcularFgts,
+    calcularRemuneracao: calcularRemuneracao,
     validarCPF: validarCPF,
     formatarCPF: formatarCPF,
     parseValor: parseValor,
@@ -1069,6 +1174,29 @@ table { border-collapse: collapse; width: 100%; }
   });
 
   $('#incluirDsr').addEventListener('change', function (e) { $('#dsrDias').disabled = !e.target.checked; });
+
+  /* ---------------- Insalubridade / periculosidade ---------------- */
+
+  /** Mostra o campo de salário mínimo (só insalubridade) e a prévia da remuneração base. */
+  function atualizarAdicional() {
+    const tipo = $('#adicionalTipo').value;
+    $('#campo-sm').hidden = tipo.indexOf('insal') !== 0;
+    const sal = C.parseValor($('#salario').value);
+    const sm = C.parseValor($('#salarioMinimo').value);
+    const caixa = $('#composicao');
+    if (tipo === 'nenhum' || Number.isNaN(sal) || sal <= 0 || (tipo.indexOf('insal') === 0 && (Number.isNaN(sm) || sm <= 0))) {
+      caixa.hidden = true;
+      return;
+    }
+    const c = C.calcularRemuneracao(sal, tipo, sm);
+    caixa.innerHTML = '<strong>Base para os cálculos:</strong> salário ' + moeda(sal) + ' + adicional ' + moeda(c.adicional.valor) +
+      ' = <strong>' + moeda(c.remuneracao) + '</strong>';
+    caixa.hidden = false;
+  }
+  ['#adicionalTipo', '#salario', '#salarioMinimo'].forEach(function (s) {
+    $(s).addEventListener('input', atualizarAdicional);
+    $(s).addEventListener('change', atualizarAdicional);
+  });
 
   /* ---------------- Confirmações manuais ---------------- */
 
@@ -1160,6 +1288,7 @@ table { border-collapse: collapse; width: 100%; }
       faltas: $('#faltas').value, incluirDsr: $('#incluirDsr').checked, dsrDias: $('#dsrDias').value,
       calcularFgts: $('#calcularFgts').checked,
       incluirSaldo: $('#incluirSaldo').checked,
+      adicionalTipo: $('#adicionalTipo').value, salarioMinimo: $('#salarioMinimo').value,
       adicionais: lerItens('adicionais'), descontos: lerItens('descontos')
     };
   }
@@ -1213,6 +1342,7 @@ table { border-collapse: collapse; width: 100%; }
     document.dispatchEvent(new CustomEvent('rescisao:desatualizada'));
     $('#aviso-desatualizado').hidden = false;
     $('#btn-recibo').disabled = true;
+    $('#recibo-area').hidden = true;
   }
   form.addEventListener('input', marcarDesatualizado);
   form.addEventListener('change', marcarDesatualizado);
@@ -1233,6 +1363,9 @@ table { border-collapse: collapse; width: 100%; }
       '<div><span>CPF</span>' + esc(d.cpf) + '</div>' +
       (d.cargo ? '<div><span>Cargo</span>' + esc(d.cargo) + '</div>' : '') +
       '<div><span>Salário base</span>' + moeda(d.salario) + '</div>' +
+      (d.adicional ? '<div><span>' + esc(d.adicional.descricao) + '</span>' + moeda(d.adicional.valor) +
+        (d.adicional.sobre === 'minimo' ? ' <small class="sub-info">(SM ' + moeda(d.adicional.base) + ')</small>' : '') + '</div>' +
+        '<div><span>Remuneração base de cálculo</span><strong>' + moeda(d.remuneracao) + '</strong></div>' : '') +
       '<div><span>Período</span>' + d.admissao + ' a ' + d.desligamento + ' (' + d.diasVinculo + ' dias)</div>';
 
     $('#res-alertas').innerHTML = r.alertas.length
@@ -1305,6 +1438,7 @@ table { border-collapse: collapse; width: 100%; }
 
   $('#btn-limpar').addEventListener('click', function () {
     form.reset();
+    atualizarAdicional();
     $('#lista-adicionais').innerHTML = '';
     $('#lista-descontos').innerHTML = '';
     $('#dsrDias').disabled = true;
@@ -1315,6 +1449,7 @@ table { border-collapse: collapse; width: 100%; }
     ultimaEntrada = null;
     resultadoAtual = false;
     $('#resultado').hidden = true;
+    $('#recibo-area').hidden = true;
     document.dispatchEvent(new CustomEvent('rescisao:limpa'));
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
@@ -1324,6 +1459,7 @@ table { border-collapse: collapse; width: 100%; }
    * restaurando confirmações manuais, faltas e itens adicionais.
    */
   function preencherFormulario(ent) {
+    $('#recibo-area').hidden = true;
     limparErros();
     ['empresa', 'nome', 'cpf', 'cargo', 'salario', 'admissao', 'desligamento'].forEach(function (id) {
       $('#' + id).value = ent[id] || '';
@@ -1334,6 +1470,9 @@ table { border-collapse: collapse; width: 100%; }
     $('#dsrDias').value = ent.dsrDias || '1';
     $('#calcularFgts').checked = ent.calcularFgts !== false;
     $('#incluirSaldo').checked = ent.incluirSaldo !== false;
+    $('#adicionalTipo').value = ent.adicionalTipo || 'nenhum';
+    $('#salarioMinimo').value = ent.salarioMinimo || '1.621,00';
+    atualizarAdicional();
     Object.keys(respostas).forEach(function (k) { delete respostas[k]; });
     Object.keys(ent.decimoAnteriorPago || {}).forEach(function (ano) { respostas['decimo-' + ano] = ent.decimoAnteriorPago[ano] ? 'sim' : 'nao'; });
     Object.keys(ent.feriasVencidasPagas || {}).forEach(function (k) { respostas['ferias-' + k] = ent.feriasVencidasPagas[k] ? 'sim' : 'nao'; });
@@ -1378,7 +1517,10 @@ table { border-collapse: collapse; width: 100%; }
         '<tr><th>Empregado</th><td colspan="3">' + esc(d.nome) + '</td></tr>' +
         '<tr><th>CPF</th><td>' + esc(d.cpf) + '</td><th>Cargo</th><td>' + esc(d.cargo || '—') + '</td></tr>' +
         '<tr><th>Admissão</th><td>' + d.admissao + '</td><th>Desligamento</th><td>' + d.desligamento + '</td></tr>' +
-        '<tr><th>Salário base</th><td colspan="3">' + moeda(d.salario) + '</td></tr>' +
+        (d.adicional
+          ? '<tr><th>Salário base</th><td>' + moeda(d.salario) + '</td><th>Adicional</th><td>' + esc(d.adicional.descricao) + ': ' + moeda(d.adicional.valor) + '</td></tr>' +
+            '<tr><th>Base de cálculo</th><td colspan="3">' + moeda(d.remuneracao) + ' (salário + adicional)</td></tr>'
+          : '<tr><th>Salário base</th><td colspan="3">' + moeda(d.salario) + '</td></tr>') +
       '</table>' +
       '<table class="rb-verbas"><thead><tr><th>Verba</th><th>Ref.</th><th class="num">Proventos</th><th class="num">Descontos</th></tr></thead>' +
       '<tbody>' + linhas + '</tbody>' +
@@ -1400,11 +1542,9 @@ table { border-collapse: collapse; width: 100%; }
   $('#btn-recibo').addEventListener('click', function () {
     if (!ultimoResultado) return;
     $('#recibo').innerHTML = montarRecibo(ultimoResultado);
-    const tituloOriginal = document.title;
-    document.title = 'Recibo rescisao - ' + ultimoResultado.dados.nome;
-    const restaurar = function () { document.title = tituloOriginal; window.removeEventListener('afterprint', restaurar); };
-    window.addEventListener('afterprint', restaurar);
-    window.print();
+    $('#recibo').classList.add('visivel');
+    $('#recibo-area').hidden = false;
+    $('#recibo-area').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
   renderizarPendencias();
@@ -1728,5 +1868,5 @@ table { border-collapse: collapse; width: 100%; }
 })();
 
 </script>
-</body>
-</html>
+
+</body></html>
